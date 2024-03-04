@@ -10,7 +10,7 @@
 mod_graphs_ui <- function(id){
   ns <- NS(id)
   tagList(
-    tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
+    shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
   )
 }
 
@@ -118,101 +118,6 @@ mod_graphs_server <- function(id){
         }
       }
     })
-
-    create_plot_barchart.f <- function(df, x_var, color_var){
-      if (color_var != "None") {
-        df %>%
-          dplyr::distinct(BOLD_BIN_uri, !!sym(x_var), !!sym(color_var)) %>%
-          group_by(!!sym(x_var), !!sym(color_var)) %>%
-          summarise(n = n()) %>%
-          group_by(!!sym(x_var)) %>%
-          mutate(total = sum(n)) %>%
-          plot_ly(x = ~get(x_var),
-                  y = ~n,
-                  color = ~get(color_var),
-                  type = "bar") %>%
-          add_text( x = ~get(x_var),
-                    y = ~total,
-                    text = ~scales::comma(total),
-                    textposition = "top middle",
-                    cliponaxis = FALSE,
-                    textfont = list(color = "black")
-          ) %>%
-          layout(yaxis = list(title = 'count'), barmode = "stack")
-      } else {
-        df %>%
-          dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-          group_by(!!sym(x_var)) %>%
-          summarise(n = n()) %>%
-          plot_ly(x = ~get(x_var),
-                  y = ~n,
-                  type = "bar") %>%
-          add_text(
-            text = ~scales::comma(n), y = ~n,
-            textposition = "top middle",
-            cliponaxis = FALSE,
-            textfont = list(color = "black")
-          ) %>%
-          layout(yaxis = list(title = 'count'), barmode = "stack")
-
-      }
-    }
-
-    create_plot_barchart_percent.f <- function(df, x_var, color_var){
-      if (color_var != "None") {
-        df %>%
-          dplyr::distinct(BOLD_BIN_uri, !!sym(x_var), !!sym(color_var)) %>%
-          group_by(!!sym(x_var), !!sym(color_var)) %>%
-          summarise(n = n()) %>%
-          group_by(!!sym(x_var)) %>%
-          mutate(total = sum(n)) %>%
-          mutate(percent = n/total * 100) %>%
-          plot_ly(x = ~get(x_var),
-                  y = ~percent,
-                  color = ~get(color_var),
-                  type = "bar") %>%
-          layout(yaxis = list(title = 'percentage'), barmode = "stack")
-      } else {
-        df %>%
-          dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-          group_by(!!sym(x_var)) %>%
-          summarise(n = n(), total = sum(n)) %>%
-          mutate(percent = n/total * 100) %>%
-          plot_ly(x = ~get(x_var),
-                  y = ~percent,
-                  type = "bar") %>%
-          layout(yaxis = list(title = 'percentage'), barmode = "stack")
-
-      }
-    }
-
-    create_barchart_tax_filtered.f <- function(df, x_var, filter_taxon, taxon_term) {
-      df %>%
-        filter(!!sym(filter_taxon) == {{taxon_term}}) %>%
-        dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-        group_by(!!sym(x_var)) %>%
-        summarise(n = n()) %>%
-        plot_ly(x = ~get(x_var),
-                y = ~n,
-                type = "bar") %>%
-        layout(yaxis = list(title = 'count'), barmode = "stack")
-    }
-
-    create_barchart_tax_filtered_percent.f <- function(df, x_var, filter_taxon, taxon_term) {
-      counter <- unique(df[[x_var]])
-      results_df <- bind_rows(lapply(counter, function(m) {
-        df_filtered <- df %>%
-          filter(!!sym(x_var) == m, !!sym(filter_taxon) == {{taxon_term}}) %>%
-          distinct(BOLD_BIN_uri, !!sym(x_var))
-
-        percent <- nrow(df_filtered) / nrow(df %>% filter(!!sym(x_var) == m) %>% distinct(BOLD_BIN_uri, !!sym(x_var))) * 100
-
-        return(data.frame(x_var = m, percent = percent))
-      }))
-
-      results_df %>%
-        plot_ly(x = ~x_var, y = ~percent, type = "bar")
-    }
   })
 }
 

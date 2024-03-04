@@ -10,7 +10,32 @@ app_ui <- function(request) {
     golem_add_external_resources(),
     # Your application UI logic
     fluidPage(
-      h1("AIMdb")
+      shinydashboard::dashboardPage(
+        shinydashboard::dashboardHeader(
+          title = "Search engine Thaddeus",
+          tags$li(class = "dropdown", shinyauthr::logoutUI("logout"))
+        ),
+        shinydashboard::dashboardSidebar(
+          collapsed = TRUE,
+          div(htmlOutput("welcome"), style = "padding: 20px"),
+          shinydashboard::sidebarMenu(
+            shinydashboard::menuItem("Upload data", tabName = "upload_data", icon = icon("upload")),
+            shinydashboard::menuItem("Search data", tabName = "search_data", icon = icon("search")),
+            shinydashboard::menuItem("Create plot", tabName = "create_plot", icon = icon("chart-bar")),
+            shinydashboard::menuItem("Create Tables", tabName = "create_table", icon = icon("plus-square")),
+            shinydashboard::menuItem("Update Tables", tabName = "update_table", icon = icon("exchange-alt")),
+            shinydashboard::menuItem("Insert Entries", tabName = "insert_value", icon = icon("edit")),
+            shinydashboard::menuItem("Delete Tables", tabName = "del_table", icon = icon("trash-alt")),
+            shinydashboard::menuItem("About", tabName = "about", icon = icon("info-circle"))
+          )
+        ),
+        shinydashboard::dashboardBody(
+          shinyjs::useShinyjs(),
+          shinyauthr::loginUI(id = "login"),
+          tableOutput("user_table"),
+          uiOutput("dynamic_tabs")
+        )
+      )
     )
   )
 }
