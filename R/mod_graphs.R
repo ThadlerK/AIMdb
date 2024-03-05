@@ -7,21 +7,25 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import plotly dplyr
+#' @importFrom DT DTOutput
+#' @importFrom DT renderDT
+#' @importFrom DT datatable
 mod_graphs_ui <- function(id){
   ns <- NS(id)
-  tagList(
+
     shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
-  )
+
 }
 
 #' graphs Server Functions
 #'
 #' @noRd
 mod_graphs_server <- function(id){
-  moduleServer( id, function(input, output, session){
+  moduleServer(id, function(input, output, session){
     ns <- session$ns
     output$tab3UI <- renderUI({
-      box(width = NULL, status = "primary",
+      shinydashboard::box(width = NULL, status = "primary",
           sidebarLayout(
             sidebarPanel(
               HTML("<h3>Plot configuration</h3>"),
@@ -30,8 +34,8 @@ mod_graphs_server <- function(id){
               uiOutput(ns("plot_config")),
             ),
             mainPanel(
-              plotlyOutput(ns("results_plot")),
-              plotlyOutput(ns("total_plot"))
+              plotly::plotlyOutput(ns("results_plot")),
+              plotly::plotlyOutput(ns("total_plot"))
             )
           )
       )
@@ -52,13 +56,13 @@ mod_graphs_server <- function(id){
             if(input$plot_type == 'Bar chart'){
               tagList(selectInput(ns("x_var"), "x-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL),
                       selectInput(ns("color_var"), "Color variable", choices = c("None","date", "month", "year", "customer", "project_name", "location_name", "habitat", "sample_name"), selected = NULL),
-                      prettySwitch(
+                      shinyWidgets::prettySwitch(
                         inputId = ns("percent_id"),
                         label = "percent",
                         fill = TRUE,
                         status = "primary"
                       ),
-                      prettySwitch(
+                      shinyWidgets::prettySwitch(
                         inputId = ns("filter_taxon_id"),
                         label = "Turn on taxon filter",
                         fill = TRUE,
@@ -108,6 +112,7 @@ mod_graphs_server <- function(id){
                 create_plot_barchart_percent.f(df, input$x_var, input$color_var)
               }
             } else {
+              req(input$filter_term)
               if (input$percent_id == FALSE) {
                 create_barchart_tax_filtered.f(df, input$x_var, input$taxonomy_type, input$filter_term)
               } else {

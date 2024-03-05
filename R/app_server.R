@@ -3,6 +3,10 @@
 #' @param input,output,session Internal parameters for {shiny}.
 #'     DO NOT REMOVE.
 #' @import shiny
+#' @importFrom DT DTOutput
+#' @importFrom DT renderDT
+#' @importFrom DT datatable
+#' @importFrom DT JS
 #' @noRd
 
 
@@ -46,10 +50,33 @@ app_server <- function(input, output, session) {
     )
   })
 
+
+
+  output$tab2UI <- renderUI({
+    shinydashboard::box(width = NULL, status = "primary",
+        sidebarLayout(
+          sidebarPanel(
+            textInput("search_term", "Search term", value =  "Cecidomyiidae"),
+            HTML("<h3>Search configuration</h3>"),
+            checkboxGroupInput("selected_attributes", "Choose attributes to display", choices = c("project_name", "habitat", "location_name", "sample_name", "date", "month", "year", "customer", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "abs_reads", "norm_reads")),
+            uiOutput("dynamic_attributes"),
+            actionButton("search_button", "Suchen"),
+            tags$hr(),
+            textOutput("result_count"),
+          ),
+          mainPanel(
+            DT::DTOutput("result_table"),
+            HTML("<h4>Summary table</h4>"),
+            DT::DTOutput("summary_table")
+          )
+        )
+    )
+  })
+
   output$dynamic_tabs <- renderUI({
     if(credentials()$user_auth) {
       shinydashboard::tabItems(
-        shinydashboard::tabItem(tabName = "upload_data", uiOutput("tab1UI")),
+        mod_upload_data_ui(id = "upload_data"),
         shinydashboard::tabItem(tabName = "search_data", uiOutput("tab2UI")),
         mod_graphs_ui(id = "graphs"),
         shinydashboard::tabItem(tabName = "del_table", uiOutput("tab4UI")),
@@ -61,84 +88,12 @@ app_server <- function(input, output, session) {
     }
   })
 
-  output$tab1UI <- renderUI({
-    box(width = NULL, status = "primary",
-        sidebarLayout(
-          sidebarPanel(
-            fileInput("file", "File input", accept = c(".xlsx")),
-            actionButton("data_read", "Load data"),
-          ),
-          mainPanel(
-            textInput("project", "Project name"),
-            textInput("customer", "Customer name"),
-            DTOutput("meta_data"),
-            uiOutput("saveButton_ui"),
-            textOutput("file_path"),
-          )
-        )
-    )
-  })
-
-  output$tab2UI <- renderUI({
-    box(width = NULL, status = "primary",
-        sidebarLayout(
-          sidebarPanel(
-            textInput("search_term", "Search term", value =  "Cecidomyiidae"),
-            HTML("<h3>Search configuration</h3>"),
-            checkboxGroupInput("selected_attributes", "Choose attributes to display", choices = c("project_name", "habitat", "location_name", "sample_name", "date", "month", "year", "customer", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "NCBI_tax_ID", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "abs_reads", "norm_reads")),
-            uiOutput("dynamic_attributes"),
-            actionButton("search_button", "Suchen"),
-            tags$hr(),
-            textOutput("result_count"),
-          ),
-          mainPanel(
-            DTOutput("result_table"),
-            HTML("<h4>Summary table</h4>"),
-            DTOutput("summary_table")
-          )
-        )
-    )
-  })
 
 
-  options(shiny.maxRequestSize = 90*1024^2)
+
+
 
   selected_attributes <- reactive(input$selected_attributes)
-
-
-  observeEvent(input$data_read, {
-    if (input$project != "" && input$customer != ""){
-      if (!is.null(input$file) && input$file$size > 0) {
-        file_path <- input$file$datapath
-        upload_success <- data_read.f(input$file$datapath, input$project,input$customer)
-        output$file_path <- renderText({
-          upload_success
-        })
-      } else {
-        output$file_path <- renderText({"error"})
-      }
-    } else {
-      showModal(modalDialog(
-        title = "Warining",
-        "Pleas fill out all input fields",
-        easyClose = TRUE
-      )
-      )
-    }
-  })
-
-  observeEvent(input$meata_data, {
-    info = input$meta_data
-    row  <- as.integer(info$row)
-    clmn <- as.integer(info$col)
-    v$meta_data[row, clmn] <- info$value
-  })
-
-  observeEvent(input$saveButton, {
-    updated_data <- v$meta_data
-    print(updated_data)
-  })
-
 
   #  autocomplete_list <- autocomplete_list.f()
   #  observe({
@@ -156,11 +111,12 @@ app_server <- function(input, output, session) {
 
   #  })
 
-
+  mod_upload_data_server(id = "upload_data")
   mod_graphs_server(id = "graphs")
 
 
   observeEvent(input$search_button, {
+    require(magrittr)
     search_results <- reactive({search_function(input$search_term) %>%
         clean_search_results.f()})
 
@@ -175,12 +131,12 @@ app_server <- function(input, output, session) {
     }
     else{
       if (length(selected_attributes()) > 0) {filtered_search_results <- filter_search_results.f(selected_attributes(), search_results())}
-      else {filtered_search_results <- search_results() %>% select(c(BOLD_BIN_uri, NCBI_tax_ID))}
+      else {filtered_search_results <- search_results() %>% dplyr::select(c(BOLD_BIN_uri, NCBI_tax_ID))}
 
 
-      output$result_table <- renderDT({
+      output$result_table <- DT::renderDT({
         filtered_search_results %>%
-          datatable(
+          DT::datatable(
             options = list(order = list(1, 'asc'),
                            dom = 'Bfrtip',
                            buttons = c('csv', 'excel')),
@@ -192,10 +148,10 @@ app_server <- function(input, output, session) {
 
       summary_table <- create_summary_table.f(selected_attributes(), search_results())
 
-      output$summary_table <- renderDT({
+      output$summary_table <- DT::renderDT({
         #        table_ncol = ncol(summary_table())/2
         data = summary_table
-        datatable(data,
+        DT::datatable(data,
                   options = list(
                     columnDefs = list(
                       list(visible=FALSE, targets = (which(grepl("\\.u", names(data)))-1))
@@ -217,7 +173,6 @@ app_server <- function(input, output, session) {
       output$result_count <- renderText({
         paste0("Total results: ", "\n", nrow(search_results()))
       })
-      write.xlsx(search_results(), "search_results.xlsx")
     }
   })
 }

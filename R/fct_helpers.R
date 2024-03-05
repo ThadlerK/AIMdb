@@ -5,15 +5,17 @@
 #' @return The return value, if any, from executing the function.
 #'
 #' @noRd
+#'
+#' @import dplyr
 
 # clean the search results
 clean_search_results.f <- function(search_results){
   if (!is.null(search_results)) {
     res <- search_results[, !duplicated(colnames({{search_results}}))] %>%
-      filter(BOLD_Grade_ID > 0.95) %>%
-      mutate(month = factor(month, levels = month.name)) %>%
-      mutate(date = as.Date(date)) %>%
-      mutate(year = as.integer(year))
+      dplyr::filter(BOLD_Grade_ID > 0.95) %>%
+      dplyr::mutate(month = factor(month, levels = month.name)) %>%
+      dplyr::mutate(date = as.Date(date)) %>%
+      dplyr::mutate(year = as.integer(year))
     print("Search results cleaned")
     return(res)
   }
@@ -24,10 +26,10 @@ create_plot_barchart.f <- function(df, x_var, color_var){
   if (color_var != "None") {
     df %>%
       dplyr::distinct(BOLD_BIN_uri, !!sym(x_var), !!sym(color_var)) %>%
-      group_by(!!sym(x_var), !!sym(color_var)) %>%
-      summarise(n = n()) %>%
-      group_by(!!sym(x_var)) %>%
-      mutate(total = sum(n)) %>%
+      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
+      dplyr::summarise(n = n()) %>%
+      dplyr::group_by(!!sym(x_var)) %>%
+      dplyr::mutate(total = sum(n)) %>%
       plot_ly(x = ~get(x_var),
               y = ~n,
               color = ~get(color_var),
@@ -43,8 +45,8 @@ create_plot_barchart.f <- function(df, x_var, color_var){
   } else {
     df %>%
       dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-      group_by(!!sym(x_var)) %>%
-      summarise(n = n()) %>%
+      dplyr::group_by(!!sym(x_var)) %>%
+      dplyr::summarise(n = n()) %>%
       plot_ly(x = ~get(x_var),
               y = ~n,
               type = "bar") %>%
@@ -64,11 +66,11 @@ create_plot_barchart_percent.f <- function(df, x_var, color_var){
   if (color_var != "None") {
     df %>%
       dplyr::distinct(BOLD_BIN_uri, !!sym(x_var), !!sym(color_var)) %>%
-      group_by(!!sym(x_var), !!sym(color_var)) %>%
-      summarise(n = n()) %>%
-      group_by(!!sym(x_var)) %>%
-      mutate(total = sum(n)) %>%
-      mutate(percent = n/total * 100) %>%
+      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
+      dplyr::summarise(n = n()) %>%
+      dplyr::group_by(!!sym(x_var)) %>%
+      dplyr::mutate(total = sum(n)) %>%
+      dplyr::mutate(percent = n/total * 100) %>%
       plot_ly(x = ~get(x_var),
               y = ~percent,
               color = ~get(color_var),
@@ -77,9 +79,9 @@ create_plot_barchart_percent.f <- function(df, x_var, color_var){
   } else {
     df %>%
       dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-      group_by(!!sym(x_var)) %>%
-      summarise(n = n(), total = sum(n)) %>%
-      mutate(percent = n/total * 100) %>%
+      dplyr::group_by(!!sym(x_var)) %>%
+      dplyr::summarise(n = n(), total = sum(n)) %>%
+      dplyr::mutate(percent = n/total * 100) %>%
       plot_ly(x = ~get(x_var),
               y = ~percent,
               type = "bar") %>%
@@ -91,10 +93,10 @@ create_plot_barchart_percent.f <- function(df, x_var, color_var){
 # create a bar chart for a specific taxon
 create_barchart_tax_filtered.f <- function(df, x_var, filter_taxon, taxon_term) {
   df %>%
-    filter(!!sym(filter_taxon) == {{taxon_term}}) %>%
+    dplyr::filter(!!sym(filter_taxon) == {{taxon_term}}) %>%
     dplyr::distinct(BOLD_BIN_uri, !!sym(x_var)) %>%
-    group_by(!!sym(x_var)) %>%
-    summarise(n = n()) %>%
+    dplyr::group_by(!!sym(x_var)) %>%
+    dplyr::summarise(n = n()) %>%
     plot_ly(x = ~get(x_var),
             y = ~n,
             type = "bar") %>%
@@ -106,8 +108,8 @@ create_barchart_tax_filtered_percent.f <- function(df, x_var, filter_taxon, taxo
   counter <- unique(df[[x_var]])
   results_df <- bind_rows(lapply(counter, function(m) {
     df_filtered <- df %>%
-      filter(!!sym(x_var) == m, !!sym(filter_taxon) == {{taxon_term}}) %>%
-      distinct(BOLD_BIN_uri, !!sym(x_var))
+      dplyr::filter(!!sym(x_var) == m, !!sym(filter_taxon) == {{taxon_term}}) %>%
+      dplyr::distinct(BOLD_BIN_uri, !!sym(x_var))
 
     percent <- nrow(df_filtered) / nrow(df %>% filter(!!sym(x_var) == m) %>% distinct(BOLD_BIN_uri, !!sym(x_var))) * 100
 
@@ -120,12 +122,12 @@ create_barchart_tax_filtered_percent.f <- function(df, x_var, filter_taxon, taxo
 
 # loads data from the data base for a specific search term
 search_function <- function(search_term) {
-  con <- dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
-  tables <- dbListTables(con)
+  con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+  tables <- RSQLite::dbListTables(con)
   # Durch alle Tabellen iterieren
   for (table in tables) {
     # SQL-Abfrage erstellen
-    rel_field = setdiff(dbListFields(con, table), paste(table,"_id", sep = ""))
+    rel_field = setdiff(RSQLite::dbListFields(con, table), paste(table,"_id", sep = ""))
     for (table_col in rel_field) {
       query <- glue::glue("
             SELECT *
@@ -133,7 +135,7 @@ search_function <- function(search_term) {
             WHERE {table_col} = '{search_term}';")
 
       # Ergebnisse der Abfrage hinzufügen
-      table_results <- dbGetQuery(con, query)
+      table_results <- RSQLite::dbGetQuery(con, query)
       if (nrow(table_results) > 0) {
         query <- glue::glue("
                 SELECT *
@@ -148,7 +150,7 @@ search_function <- function(search_term) {
                   INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
                   INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
                 WHERE {table}.{table_col} = '{search_term}';")
-        res = unique(dbGetQuery(con, query))
+        res = unique(RSQLite::dbGetQuery(con, query))
         return(res)
       }
     }
@@ -163,9 +165,9 @@ sum_abs_reads_function <- function(selected_attributes, search_results){
     stop(paste("Die folgenden ausgewählten Attribute sind nicht in den search_results vorhanden:", paste(invalid_attributes, collapse = ", ")))
   }
   return(search_results %>%
-           select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes), abs_reads)) %>%
-           group_by(BOLD_BIN_uri, NCBI_tax_ID, !!!syms(selected_attributes)) %>%
-           summarize(abs_reads = sum(abs_reads)))
+           dplyr::select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes), abs_reads)) %>%
+           dplyr::group_by(BOLD_BIN_uri, NCBI_tax_ID, !!!syms(selected_attributes)) %>%
+           dplyr::summarize(abs_reads = sum(abs_reads)))
 }
 
 # filter for BOLD_Grade > 0.95
@@ -175,10 +177,10 @@ sum_abs_reads_function <- function(selected_attributes, search_results){
 clean_search_results.f <- function(search_results){
   if (!is.null(search_results)) {
     search_results <- search_results[, !duplicated(colnames({{search_results}}))] %>%
-      filter(BOLD_Grade_ID > 0.95) %>%
-      mutate(month = factor(month, levels = month.name)) %>%
-      mutate(date = as.Date(date)) %>%
-      mutate(year = as.integer(year))
+      dplyr::filter(BOLD_Grade_ID > 0.95) %>%
+      dplyr::mutate(month = factor(month, levels = month.name)) %>%
+      dplyr::mutate(date = as.Date(date)) %>%
+      dplyr::mutate(year = as.integer(year))
     print("Search results cleaned")
     return(search_results)
   }
@@ -188,11 +190,11 @@ clean_search_results.f <- function(search_results){
 # filter data for selected attributes and remove rows with only NA
 filter_search_results.f <- function(selected_attributes, search_results){
   search_results <- search_results %>%
-    select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes)))
+    dplyr::select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes)))
 
   if(length(selected_attributes) > 1){
     search_results <-search_results %>%
-      filter(rowSums(!is.na(.[, !(names(.) %in% c("BOLD_BIN_uri", "NCBI_tax_ID"))])) > 0)
+      dplyr::filter(rowSums(!is.na(.[, !(names(.) %in% c("BOLD_BIN_uri", "NCBI_tax_ID"))])) > 0)
   }
 
   if ("abs_reads" %in% selected_attributes) {
@@ -205,16 +207,16 @@ filter_search_results.f <- function(selected_attributes, search_results){
 # creates table with a summary for each attribute
 create_summary_table.f = function(selected_attributes, search_results) {
   ph1 <- search_results %>%
-    select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes)))
+    dplyr::select(c(BOLD_BIN_uri, NCBI_tax_ID, all_of(selected_attributes)))
 
   unique_counts_per_bin <- ph1 %>%
-    group_by(BOLD_BIN_uri) %>%
-    summarise_all(~ n_distinct(., na.rm = TRUE))
+    dplyr::group_by(BOLD_BIN_uri) %>%
+    dplyr::summarise_all(~ n_distinct(., na.rm = TRUE))
 
   ph2 <- ph1 %>%
-    distinct() %>%
-    group_by(BOLD_BIN_uri) %>%
-    summarise_all( ~ paste(unique(.), collapse = ", "))
+    dplyr::distinct() %>%
+    dplyr::group_by(BOLD_BIN_uri) %>%
+    dplyr::summarise_all( ~ paste(unique(.), collapse = ", "))
 
 
   total_unique_counts <- ph1 %>%
@@ -222,7 +224,7 @@ create_summary_table.f = function(selected_attributes, search_results) {
     unlist()
 
   summary_table <- unique_counts_per_bin %>%
-    mutate(across(
+    dplyr::mutate(across(
       .cols = -BOLD_BIN_uri,
       .fns = ~ paste0(., "/", total_unique_counts[as.character(cur_column())])
     ))

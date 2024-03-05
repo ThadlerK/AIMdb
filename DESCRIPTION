@@ -11,14 +11,18 @@ BugReports: https://github.com/ThadlerK/AIMdb/issues
 Imports: 
     config (>= 0.3.2),
     dplyr,
+    DT,
     glue,
     golem (>= 0.4.1),
+    magrittr,
+    plotly,
     RSQLite,
     scales,
     shiny (>= 1.8.0),
     shinyauthr,
     shinydashboard,
     shinyjs,
+    shinyWidgets,
     sodium
 Suggests: 
     knitr,
@@ -30,3 +34,4 @@ Encoding: UTF-8
 Language: en-US
 LazyData: true
 RoxygenNote: 7.3.1
+VignetteBuilder: knitr
