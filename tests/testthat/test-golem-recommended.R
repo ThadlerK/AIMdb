@@ -55,8 +55,8 @@ test_that(
 testServer(app_server, {
 
   # Set and test an input
-  session$setInputs(x = 2)
-  expect_equal(input$x, 2)
+  session$setInputs(selected_attributes = "location_name")
+  stopifnot(selected_attributes() == "location_name")
 
   # Example of tests you can do on the server:
   # - Checking reactiveValues

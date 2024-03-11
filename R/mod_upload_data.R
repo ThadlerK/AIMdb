@@ -8,7 +8,10 @@
 #'
 #' @importFrom shiny NS tagList
 #' @importFrom readxl read_excel
+#' @importFrom tidyr pivot_longer
+#' @importFrom tibble rownames_to_column
 #' @import RSQLite dplyr
+#'
 mod_upload_data_ui <- function(id){
   ns <- NS(id)
   shinydashboard::tabItem(tabName = "upload_data", uiOutput(ns("tab1UI")))
@@ -176,7 +179,7 @@ mod_upload_data_server <- function(id){
     colnames(location.df) = c("location_name", "habitat")
     location.df$location_name = gsub("[0-9\\s]", "", location.df$location_name)
     location.df = location.df %>%
-      distinct(location_name, .keep_all = T)
+      distinct(.data$location_name, .keep_all = T)
 
 
 
@@ -633,10 +636,10 @@ mod_upload_data_server <- function(id){
     reads.df$customer = rep(customer.v, times = nrow(reads.df))
     reads.df$project_name = rep(project.v, times = nrow(reads.df))
     reads.df = reads.df %>%
-      group_by(sample_name) %>%
+      group_by(.data$sample_name) %>%
       mutate(
-        sum_raw_reads = sum(abs_reads),
-        norm_reads = abs_reads / sum_raw_reads
+        sum_raw_reads = sum(.data$abs_reads),
+        norm_reads = .data$abs_reads / .data$sum_raw_reads
       ) %>%
       ungroup()
     meta_data.df = as.data.frame(t(raw_data[c(r_indice_date:r_indice_customer_sample_id),start.col: end.col]))
@@ -650,7 +653,7 @@ mod_upload_data_server <- function(id){
     reads.df = left_join(reads.df, meta_data.df, by = "sample_name")
 
     reads.df = reads.df %>%
-      filter(abs_reads != 0)
+      filter(.data$abs_reads != 0)
     #reads.df$abs_reads = as.integer(reads.df$abs_reads)
     #reads.df = merge(reads.df, sample.df[,c()])
     #  reads.df %>%

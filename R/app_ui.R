@@ -30,7 +30,6 @@ app_ui <- function(request) {
           )
         ),
         shinydashboard::dashboardBody(
-          shinyjs::useShinyjs(),
           shinyauthr::loginUI(id = "login"),
           tableOutput("user_table"),
           uiOutput("dynamic_tabs")

@@ -13,9 +13,7 @@
 #' @importFrom DT datatable
 mod_graphs_ui <- function(id){
   ns <- NS(id)
-
-    shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
-
+  shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
 }
 
 #' graphs Server Functions
@@ -55,7 +53,9 @@ mod_graphs_server <- function(id){
             },
             if(input$plot_type == 'Bar chart'){
               tagList(selectInput(ns("x_var"), "x-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL),
+                      selectInput(ns("y_var"), "y-axis", choices = c("BOLD_BIN_uri", "NCBI_tax_ID", "sample_name","customer_sample_id", "abs_reads", "reads_id", "project_name", "BOLD_Process_ID")),
                       selectInput(ns("color_var"), "Color variable", choices = c("None","date", "month", "year", "customer", "project_name", "location_name", "habitat", "sample_name"), selected = NULL),
+                      selectInput(ns("count_typ"), "Count typ", choices = c("unique_counts", "read_counts")),
                       shinyWidgets::prettySwitch(
                         inputId = ns("percent_id"),
                         label = "percent",
@@ -93,11 +93,12 @@ mod_graphs_server <- function(id){
           req(input$filter_taxon_id)
           tagList(
             selectInput(ns("taxonomy_type"), "Choose taxonomy to be filtered", choices = c("BOLD_BIN_uri","NCBI_tax_ID","consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species")),
-            textInput(ns("filter_term"), "Type in")
+            textInput(ns("filter_term"), "Enter comma-separated values:")
           )
         })
       }
     })
+
 
     observeEvent(input$get_graph,{
       if (input$plot_type != "None"){
@@ -107,16 +108,19 @@ mod_graphs_server <- function(id){
           output$results_plot <- renderPlotly({
             if (input$filter_taxon_id == FALSE){
               if (input$percent_id == FALSE) {
-                create_plot_barchart.f(df, input$x_var, input$color_var)
+                create_plot_barchart.f(df, input$x_var, input$y_var, input$color_var)
               } else {
-                create_plot_barchart_percent.f(df, input$x_var, input$color_var)
+                create_plot_barchart_percent.f(df, input$x_var, input$y_var, input$color_var)
               }
             } else {
               req(input$filter_term)
+              filter_values <- reactive({
+                strsplit(gsub(" ", "", trimws(input$filter_term)), ",")[[1]]
+              })
               if (input$percent_id == FALSE) {
-                create_barchart_tax_filtered.f(df, input$x_var, input$taxonomy_type, input$filter_term)
+                create_barchart_tax_filtered.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values())
               } else {
-                create_barchart_tax_filtered_percent.f(df, input$x_var, input$taxonomy_type, input$filter_term)
+                create_barchart_tax_filtered_percent.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values())
               }
             }
           })

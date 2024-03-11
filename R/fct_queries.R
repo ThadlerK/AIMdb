@@ -39,8 +39,9 @@ plot_data_query.f <- function(project){
                   INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
                 WHERE project.project_name = '{project}';")
   res = unique(RSQLite::dbGetQuery(con, query))
-  return(res)
   RSQLite::dbDisconnect(con)
+  return(res)
+
 }
 
 #connect to db
