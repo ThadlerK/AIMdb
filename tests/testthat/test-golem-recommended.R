@@ -52,7 +52,7 @@ test_that(
 
 # Configure this test to fit your need.
 # testServer() function makes it possible to test code in server functions and modules, without needing to run the full Shiny application
-testServer(app_server, {
+testServer(mod_search_data_server, {
 
   # Set and test an input
   session$setInputs(selected_attributes = "location_name")

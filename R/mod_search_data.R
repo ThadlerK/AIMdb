@@ -43,62 +43,87 @@ mod_search_data_server <- function(id){
     selected_attributes <- reactive(input$selected_attributes)
 
     observeEvent(input$search_button, {
-      search_results <- reactive({search_function(input$search_term) %>%
-          clean_search_results.f()})
+      tryCatch( expr = {
+        con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+        if (dbExistsTable(con, "reads")) {
 
 
-      if (is.null(search_results())) {
-        showModal(modalDialog(
-          title = "No results found",
-          "There were no results found for your search term",
-          easyClose = TRUE
-        )
-        )
-      }
-      else{
-        if (length(selected_attributes()) > 0) {filtered_search_results <- filter_search_results.f(selected_attributes(), search_results())}
-        else {filtered_search_results <- search_results() %>% dplyr::select(.data$BOLD_BIN_uri, .data$NCBI_tax_ID)}
+          search_results <- reactive({search_function(input$search_term) %>%
+              clean_search_results.f()})
 
 
-        output$result_table <- DT::renderDT({
-          filtered_search_results %>%
-            DT::datatable(
-              options = list(order = list(1, 'asc'),
-                             dom = 'Bfrtip',
-                             buttons = c('csv', 'excel')),
-              extensions = 'Buttons',
-              editable = TRUE,
-              filter = 'bottom'
+          if (is.null(search_results())) {
+            showModal(modalDialog(
+              title = "No results found",
+              "There were no results found for your search term",
+              easyClose = TRUE
             )
-        })
-
-        summary_table <- create_summary_table.f(selected_attributes(), search_results())
-
-        output$summary_table <- DT::renderDT({
-          data = summary_table
-          DT::datatable(data,
-                        options = list(
-                          columnDefs = list(
-                            list(visible=FALSE, targets = (which(grepl("\\.u", names(data)))-1))
-                          ),
-
-                          rowCallback = JS(
-                            "function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {",
-                            "for(var i = 1; i < ", ceiling(ncol(data)/2), "; i++) {",
-                            "var full_text = aData[i + ", floor(ncol(data)/2), "];",
-                            "$('td:eq('+i+')', nRow).attr('title', full_text);",
-                            "}",
-                            "}")
-                        ),
-                        rownames = FALSE,
-                        editable = TRUE)
+            )
+          }
+          else{
+            if (length(selected_attributes()) > 0) {filtered_search_results <- filter_search_results.f(selected_attributes(), search_results())}
+            else {filtered_search_results <- search_results() %>% dplyr::select(.data$BOLD_BIN_uri, .data$NCBI_tax_ID)}
 
 
-        })
-        output$result_count <- renderText({
-          paste0("Total results: ", "\n", nrow(search_results()))
-        })
-      }
+            output$result_table <- DT::renderDT({
+              filtered_search_results %>%
+                DT::datatable(
+                  options = list(order = list(1, 'asc'),
+                                 dom = 'Bfrtip',
+                                 buttons = c('csv', 'excel')),
+                  extensions = 'Buttons',
+                  editable = TRUE,
+                  filter = 'bottom'
+                )
+            })
+
+            summary_table <- create_summary_table.f(selected_attributes(), search_results())
+
+            output$summary_table <- DT::renderDT({
+              data = summary_table
+              DT::datatable(data,
+                            options = list(
+                              columnDefs = list(
+                                list(visible=FALSE, targets = (which(grepl("\\.u", names(data)))-1))
+                              ),
+
+                              rowCallback = JS(
+                                "function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {",
+                                "for(var i = 1; i < ", ceiling(ncol(data)/2), "; i++) {",
+                                "var full_text = aData[i + ", floor(ncol(data)/2), "];",
+                                "$('td:eq('+i+')', nRow).attr('title', full_text);",
+                                "}",
+                                "}")
+                            ),
+                            rownames = FALSE,
+                            editable = TRUE)
+
+
+            })
+            output$result_count <- renderText({
+              paste0("Total results: ", "\n", nrow(search_results()))
+            })
+          }
+        } else {
+            showModal(
+              modalDialog(
+              title = "No connection",
+              "Could not connect to data base",
+              easyClose = TRUE
+              )
+            )
+          }
+        dbDisconnect(con)
+      },
+      error = function(e){
+        showModal(
+          modalDialog(
+            title = "Error",
+            "Error connecting to database or database not found",
+            easyClose = TRUE
+          )
+        )
+      })
     })
 
   })

@@ -26,45 +26,7 @@ clean_search_results.f <- function(search_results){
 }
 
 # create a bar chart (with or without color variable)
-create_plot_barchart.f <- function(df, x_var, y_var, color_var){
-  if (color_var != "None") {
-    df %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)) %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(n = n()) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::mutate(total = sum(n)) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~n,
-              color = ~get(color_var),
-              type = "bar") %>%
-      add_text( x = ~get(x_var),
-                y = ~total,
-                text = ~scales::comma(total),
-                textposition = "top middle",
-                cliponaxis = FALSE,
-                textfont = list(color = "black")
-      ) %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-  } else {
-    df %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var)) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::summarise(n = n()) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~n,
-              type = "bar") %>%
-      add_text(
-        text = ~scales::comma(n), y = ~n,
-        textposition = "top middle",
-        cliponaxis = FALSE,
-        textfont = list(color = "black")
-      ) %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-
-  }
-}
-create_plot_barchart_test.f <- function(df, x_var, y_var, color_var, typ){
+create_plot_barchart.f <- function(df, x_var, y_var, color_var, typ){
   if (color_var != "None") {
     df %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
@@ -102,34 +64,7 @@ create_plot_barchart_test.f <- function(df, x_var, y_var, color_var, typ){
 }
 
 # create a bar chart with percentage (with or without color variable)
-create_plot_barchart_percent.f <- function(df, x_var, y_var, color_var){
-  if (color_var != "None") {
-    df %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)) %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(n = n()) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::mutate(total = sum(n)) %>%
-      dplyr::mutate(percent = n/.data$total * 100) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~percent,
-              color = ~get(color_var),
-              type = "bar") %>%
-      layout(yaxis = list(title = 'percentage'), barmode = "stack")
-  } else {
-    df %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var)) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::summarise(n = n(), total = sum(n)) %>%
-      dplyr::mutate(percent = n/.data$total * 100) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~percent,
-              type = "bar") %>%
-      layout(yaxis = list(title = 'percentage'), barmode = "stack")
-
-  }
-}
-create_plot_barchart_percent_test.f <- function(df, x_var, y_var, color_var, typ){
+create_plot_barchart_percent.f <- function(df, x_var, y_var, color_var, typ){
   if (color_var != "None") {
     df %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
@@ -156,32 +91,7 @@ create_plot_barchart_percent_test.f <- function(df, x_var, y_var, color_var, typ
 }
 
 # create a bar chart for a specific taxon (with or without color variable)
-create_barchart_tax_filtered.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term) {
-  if (color_var != "None") {
-    df %>%
-      dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)) %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(n = n()) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~n,
-              color = ~get(color_var),
-              type = "bar") %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-  } else {
-    df %>%
-      dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var)) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::summarise(n = n()) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~n,
-              type = "bar") %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-  }
-}
-
-create_barchart_tax_filtered_test.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
+create_barchart_tax_filtered.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
   if (color_var != "None") {
     df %>%
       dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
@@ -205,40 +115,7 @@ create_barchart_tax_filtered_test.f <- function(df, x_var, y_var, color_var, fil
 }
 
 # create a bar chart for a specific taxon with percentage (with or without color variable)
-create_barchart_tax_filtered_percent.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term) {
-  if (color_var != "None") {
-    df_filtered <- df %>%
-      dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)) %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(n = n())
-
-    df_total <- df %>%
-      dplyr::distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)) %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(nn = n()) %>%
-
-    full_join(df_filtered, df_total, by = c({{x_var}}, {{color_var}})) %>%
-      mutate(prop = n/.data$nn * 100) %>%
-      plot_ly(x = ~get(x_var), y = ~prop, color = ~get(color_var), type = "bar")
-  } else {
-    counter <- unique(df[[x_var]])
-    results_df <- bind_rows(lapply(counter, function(m) {
-      df_filtered <- df %>%
-        dplyr::filter(!!sym(x_var) == m, !!sym(filter_taxon) %in% taxon_term) %>%
-        dplyr::distinct(!!sym(y_var), !!sym(x_var))
-
-      percent <- nrow(df_filtered) / nrow(df %>% filter(!!sym(x_var) == m) %>% distinct(!!sym(y_var), !!sym(x_var))) * 100
-
-      return(data.frame(x_var = m, percent = percent))
-    }))
-
-    results_df %>%
-      plot_ly(x = ~x_var, y = ~percent, type = "bar")
-  }
-}
-
-create_barchart_tax_filtered_percent_test.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
+create_barchart_tax_filtered_percent.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
   if (color_var != "None") {
     df_filtered <- df %>%
       dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
@@ -276,47 +153,6 @@ create_barchart_tax_filtered_percent_test.f <- function(df, x_var, y_var, color_
       plot_ly(x = ~x_var, y = ~percent, type = "bar")
   }
 }
-
-abs_reads_barchart.f <- function(df, x_var, y_var, color_var){
-  if (color_var != "None") {
-    df %>%
-      dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
-      dplyr::summarise(s = sum(.data$abs_reads)) %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::mutate(total = sum(.data$s)) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~s,
-              color = ~get(color_var),
-              type = "bar") %>%
-      add_text( x = ~get(x_var),
-                y = ~total,
-                text = ~scales::comma(total),
-                textposition = "top middle",
-                cliponaxis = FALSE,
-                textfont = list(color = "black")
-      ) %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-  } else {
-    df %>%
-      dplyr::group_by(!!sym(x_var)) %>%
-      dplyr::summarise(s = sum(.data$abs_reads)) %>%
-      plot_ly(x = ~get(x_var),
-              y = ~s,
-              type = "bar") %>%
-      add_text(
-        text = ~scales::comma(s), y = ~s,
-        textposition = "top middle",
-        cliponaxis = FALSE,
-        textfont = list(color = "black")
-      ) %>%
-      layout(yaxis = list(title = 'count'), barmode = "stack")
-
-  }
-}
-
-
-
-
 
 
 

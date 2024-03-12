@@ -43,16 +43,17 @@ app_server <- function(input, output, session) {
     log_out = reactive(logout_init()))
 
   output$user_table <- renderUI({
-    if(credentials()$user_auth) return(NULL)
-    fluidRow(column(4,
-                    p("Please use the usernames and passwords ...",
-                      class = "text-center", style = "font-size: 15px;"),
-                    br(),
-                    renderTable({user_base[, -3]}), offset = 4
-    )
-    )
+    if(credentials()$user_auth) {return(NULL)}
+    else{
+      fluidRow(
+        column(4, p("Please use the usernames and passwords ...",
+                  class = "text-center", style = "font-size: 15px;"),
+                  br(),
+                  renderTable({user_base[, -3]}), offset = 4
+        )
+      )
+    }
   })
-
 
 
 

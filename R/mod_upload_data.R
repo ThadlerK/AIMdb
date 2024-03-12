@@ -24,7 +24,6 @@ mod_upload_data_server <- function(id){
   moduleServer( id, function(input, output, session){
     ns <- session$ns
 
-    optioshiny.maxRequestSize = 90*1024^2
 
     observeEvent(input$meata_data, {
       info = input$meta_data
@@ -118,7 +117,7 @@ mod_upload_data_server <- function(id){
     date.df = unique(date.df)
     row.names(date.df) = NULL
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS date(
         date_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -144,7 +143,7 @@ mod_upload_data_server <- function(id){
     project.df = data.frame()
     project.df = data.frame(customer = customer.v, project_name = project.v)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS project(
       project_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -179,7 +178,7 @@ mod_upload_data_server <- function(id){
     colnames(location.df) = c("location_name", "habitat")
     location.df$location_name = gsub("[0-9\\s]", "", location.df$location_name)
     location.df = location.df %>%
-      distinct(.data$location_name, .keep_all = T)
+      distinct(.data$location_name,.data$habitat, .keep_all = T)
 
 
 
@@ -188,7 +187,7 @@ mod_upload_data_server <- function(id){
     row.names(location.df) = NULL
     location.df = location.df[,c("location_name", "habitat")]
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS location (
         location_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -228,7 +227,7 @@ mod_upload_data_server <- function(id){
 
     BOLD_tax.df = unique(BOLD_tax.df)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS BOLD_tax(
         BOLD_tax_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -280,7 +279,7 @@ mod_upload_data_server <- function(id){
     BOLD_db.df = unique(BOLD_db.df)
 
     #get BOLD_tax_id from the databank
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     BOLD_tax_wid.df = dbGetQuery(con,"
       SELECT BOLD_tax_id, adjusted_Phylum_BOLD, adjusted_Class_BOLD, adjusted_Order_BOLD, adjusted_Family_BOLD, adjusted_Genus_BOLD, adjusted_Species_BOLD
       FROM BOLD_tax
@@ -353,7 +352,7 @@ mod_upload_data_server <- function(id){
     #ct.df$ct_id = as.integer(factor(paste(ct.df$consensus_Domain, ct.df$consensus_Phylum, ct.df$consensus_Class, ct.df$consensus_Order, ct.df$consensus_Family, ct.df$consensus_Genus, ct.df$consensus_Species), levels = unique(paste(ct.df$consensus_Domain, ct.df$consensus_Phylum, ct.df$consensus_Class, ct.df$consensus_Order, ct.df$consensus_Family, ct.df$consensus_Genus, ct.df$consensus_Species))))
     ct.df = unique(ct.df)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS consensus_taxonomy(
         ct_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -404,7 +403,7 @@ mod_upload_data_server <- function(id){
     #NCBI_tax.df$taxonomy_id = as.integer(factor(paste(NCBI_tax.df$adjusted_Domain_NCBI, NCBI_tax.df$adjusted_Phylum_NCBI, NCBI_tax.df$adjusted_Class_NCBI, NCBI_tax.df$adjusted_Order_NCBI, NCBI_tax.df$adjusted_Family_NCBI, NCBI_tax.df$adjusted_Genus_NCBI, NCBI_tax.df$adjusted_Species_NCBI), levels = unique(paste(NCBI_tax.df$adjusted_Domain_NCBI, NCBI_tax.df$adjusted_Phylum_NCBI, NCBI_tax.df$adjusted_Class_NCBI, NCBI_tax.df$adjusted_Order_NCBI, NCBI_tax.df$adjusted_Family_NCBI, NCBI_tax.df$adjusted_Genus_NCBI, NCBI_tax.df$adjusted_Species_NCBI))))
     NCBI_tax.df = unique(NCBI_tax.df)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS NCBI_tax(
         taxonomy_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -468,7 +467,7 @@ mod_upload_data_server <- function(id){
     NCBI_gb.df = NCBI_gb.df[c(c(r_indice_BOLD_Process_ID+1):nrow(NCBI_gb.df)),]
 
     #get taxonomy_id from the databank
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     NCBI_tax_wid.df = dbGetQuery(con,"
       SELECT taxonomy_id, adjusted_Domain_NCBI, adjusted_Phylum_NCBI, adjusted_Class_NCBI, adjusted_Order_NCBI, adjusted_Family_NCBI, adjusted_Genus_NCBI, adjusted_Species_NCBI
       FROM NCBI_tax
@@ -479,7 +478,7 @@ mod_upload_data_server <- function(id){
     #NCBI_gb.df$NCBI_gb_id = as.integer(factor(paste(NCBI_gb.df$NCBI_Accession_ID, NCBI_gb.df$NCBI_tax_ID, NCBI_gb.df$taxonomy_id), levels = unique(paste(NCBI_gb.df$NCBI_Accession_ID, NCBI_gb.df$NCBI_tax_ID, NCBI_gb.df$taxonomy_id))))
     NCBI_gb.df = unique(NCBI_gb.df)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS NCBI_gb(
         NCBI_gb_id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -530,22 +529,28 @@ mod_upload_data_server <- function(id){
     sample.df = data.frame()
     start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
-    sample.df = as.data.frame(t(raw_data[c(r_indice_date:r_indice_BOLD_Process_ID),start.col: end.col ]))
-    colnames(sample.df) = c("date", "customer_sample_id", "sample_name")
+    if (length(r_indice_habitat) == 0) {
+      sample.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id, r_indice_BOLD_Process_ID),start.col: end.col ]))
+      sample.df$habitat <- NA
+    } else {
+      sample.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id, r_indice_BOLD_Process_ID, r_indice_habitat),start.col: end.col ]))
+    }
+    colnames(sample.df) = c("date", "customer_sample_id", "sample_name", "habitat")
     sample.df$date = as.numeric(sample.df$date)
     sample.df$date = as.Date(sample.df$date, origin = "1899-12-30")
     sample.df$date = as.character(sample.df$date)
     sample.df$customer = rep(customer.v, times = nrow(sample.df))
     sample.df$project_name = rep(project.v, times = nrow(sample.df))
+    sample.df$location_name = gsub("[0-9\\s]", "", sample.df$customer_sample_id)
 
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+
+
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     location_wid.df = dbGetQuery(con,"
-      SELECT location_id, location_name
+      SELECT location_id, location_name, habitat
       FROM location
     ")
-    for (i in c(1:nrow(sample.df))) {
-      sample.df$location_id[i] = location_wid.df$location_id[location_wid.df$location_name == gsub("[0-9\\s]", "", sample.df$customer_sample_id[i])]
-    }
+    sample.df = left_join(sample.df, location_wid.df, by = c("location_name", "habitat"))
 
     date_wid.df = dbGetQuery(con,"
       SELECT date_id, date
@@ -642,7 +647,7 @@ mod_upload_data_server <- function(id){
         norm_reads = .data$abs_reads / .data$sum_raw_reads
       ) %>%
       ungroup()
-    meta_data.df = as.data.frame(t(raw_data[c(r_indice_date:r_indice_customer_sample_id),start.col: end.col]))
+    meta_data.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id),start.col: end.col]))
     colnames(meta_data.df) = c("date","customer_sample_id")
     meta_data.df$date = as.numeric(meta_data.df$date)
     meta_data.df$date = as.Date(meta_data.df$date, origin = "1899-12-30")
@@ -661,7 +666,7 @@ mod_upload_data_server <- function(id){
     #  mutate(sample_id = coalesce(sample_id, NA))
 
     ##########################################################################################
-    con = dbConnect(SQLite(), dbname = "R/HIPPDatenbank.db")
+    con = dbConnect(SQLite(), dbname = "HIPPDatenbank.db")
     BOLD_db_wid.df = dbGetQuery(con,"
       SELECT *
       FROM BOLD_db

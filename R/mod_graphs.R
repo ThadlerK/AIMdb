@@ -13,7 +13,7 @@
 #' @importFrom DT datatable
 mod_graphs_ui <- function(id){
   ns <- NS(id)
-  shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")))
+  shinydashboard::tabItem(tabName = "create_plot", uiOutput(ns("tab3UI")), selected = TRUE)
 }
 
 #' graphs Server Functions
@@ -108,9 +108,9 @@ mod_graphs_server <- function(id){
           output$results_plot <- renderPlotly({
             if (input$filter_taxon_id == FALSE){
               if (input$percent_id == FALSE) {
-                create_plot_barchart.f(df, input$x_var, input$y_var, input$color_var)
+                create_plot_barchart.f(df, input$x_var, input$y_var, input$color_var, input$count_typ)
               } else {
-                create_plot_barchart_percent.f(df, input$x_var, input$y_var, input$color_var)
+                create_plot_barchart_percent.f(df, input$x_var, input$y_var, input$color_var, input$count_typ)
               }
             } else {
               req(input$filter_term)
@@ -118,9 +118,9 @@ mod_graphs_server <- function(id){
                 strsplit(gsub(" ", "", trimws(input$filter_term)), ",")[[1]]
               })
               if (input$percent_id == FALSE) {
-                create_barchart_tax_filtered.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values())
+                create_barchart_tax_filtered.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values(), input$count_typ)
               } else {
-                create_barchart_tax_filtered_percent.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values())
+                create_barchart_tax_filtered_percent.f(df, input$x_var, input$y_var, input$color_var, input$taxonomy_type, taxon_term = filter_values(), input$count_typ)
               }
             }
           })

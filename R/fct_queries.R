@@ -25,6 +25,7 @@ projects_query.f <- function(){
 #Get plot data
 plot_data_query.f <- function(project){
   con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+  project_names <- paste0("'", project, "'", collapse = ", ")
   query <- glue::glue("
                 SELECT *
                 FROM reads
@@ -37,7 +38,7 @@ plot_data_query.f <- function(project){
                   INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
                   INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
                   INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-                WHERE project.project_name = '{project}';")
+                WHERE project.project_name IN ({project_names});")
   res = unique(RSQLite::dbGetQuery(con, query))
   RSQLite::dbDisconnect(con)
   return(res)
