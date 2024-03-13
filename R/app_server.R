@@ -15,6 +15,9 @@
 
 app_server <- function(input, output, session) {
 
+  # set maximum upload size
+  options(shiny.maxRequestSize = 100 * 1024^2)
+
   user_base <- data.frame(
     username = c("user1", "user2"),
     password = c("pass1", "pass2"),

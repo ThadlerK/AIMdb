@@ -631,6 +631,12 @@ mod_upload_data_server <- function(id){
     start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
     reads.df = cbind(raw_data[,c("NCBI_Accession_ID", "NCBI_tax_ID", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI" , "consensus_Domain", "consensus_Class", "consensus_Order", "consensus_Phylum", "consensus_Family", "consensus_Genus", "consensus_Species", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID","BIN sharing?","BIN species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD")],raw_data[start.col: end.col ])
+    if ("OTU_fasta_sequence" %in% colnames(raw_data)) {
+      reads.df = cbind(reads.df, raw_data[,"OTU_fasta_sequence"])
+      colnames(reads.df)[ncol(reads.df)] <-"OTU_fasta_sequence"
+    } else {
+      reads.df$OTU_fasta_sequence <- NA
+    }
     reads.df = reads.df[c(c(r_indice_BOLD_Process_ID+1):nrow(reads.df)),]
     reads.df$BOLD_HIT_ID = as.numeric(sub("%", "", reads.df$BOLD_HIT_ID))/100
     reads.df$BOLD_Grade_ID = as.numeric(sub("%", "", reads.df$BOLD_Grade_ID))/100
@@ -703,7 +709,7 @@ mod_upload_data_server <- function(id){
     ")
     reads.df = left_join(reads.df, sample_date_wid.df[,c("sample_id", "sample_name", "customer_sample_id", "date", "project_name", "customer")], by = c("sample_name", "customer_sample_id", "date", "project_name", "customer"))
     rownames(reads.df) = NULL
-    reads.df = reads.df[,c("sample_id", "BOLD_db_id", "NCBI_gb_id","ct_id", "abs_reads", "norm_reads")]
+    reads.df = reads.df[,c("sample_id", "BOLD_db_id", "NCBI_gb_id","ct_id", "abs_reads", "norm_reads", "OTU_fasta_sequence")]
 
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS reads (
@@ -714,6 +720,7 @@ mod_upload_data_server <- function(id){
         ct_id INTEGER NOT NULL,
         abs_reads INTEGER,
         norm_reads NUMERIC,
+        OTU_fasta_sequence CHARACTER,
         CONSTRAINT BOLD_reads_fk
           FOREIGN KEY (BOLD_db_id) REFERENCES BOLD_db (BOLD_db_id),
         CONSTRAINT NCBI_reads_fk

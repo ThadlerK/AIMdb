@@ -269,3 +269,38 @@ create_summary_table.f = function(selected_attributes, search_results) {
   return(res)
 
 }
+
+#test if a vector could be a DNA sequence
+is_dna_sequence <- function(query) {
+  # Regulärer Ausdruck, der nach möglichen DNA-Basen sucht (A, T, C, G)
+  dna_pattern <- "^[ATCGatcg]+$"
+
+  # Überprüfung des Suchbegriffs mit dem regulären Ausdruck
+  if (grepl(dna_pattern, query)) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+
+# reverse a DNA sequence
+reverse_complement <- function(seq) {
+  # Umkehrung der Sequenz
+  reversed_seq <- rev(strsplit(seq, "")[[1]])
+
+  # Ersetzen der Basen durch ihre Komplementäre
+  complement <- function(base) {
+    switch(base,
+           "A" = "T",
+           "T" = "A",
+           "C" = "G",
+           "G" = "C",
+           base)
+  }
+  complemented_seq <- sapply(reversed_seq, complement)
+
+  # Verbinden der komplementären Basen zu einer Zeichenfolge
+  complemented_seq <- paste(complemented_seq, collapse = "")
+
+  return(complemented_seq)
+}

@@ -7,6 +7,10 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
+#' @import dplyr
+#' @importFrom DT DTOutput
+#' @importFrom DT renderDT
+#' @importFrom DT datatable
 mod_search_data_ui <- function(id){
   ns <- NS(id)
   shinydashboard::tabItem(tabName = "search_data", uiOutput(ns("tab2UI")))
@@ -25,7 +29,7 @@ mod_search_data_server <- function(id){
           sidebarPanel(
             textInput(ns("search_term"), "Search term", value =  "Cecidomyiidae"),
             HTML("<h3>Search configuration</h3>"),
-            checkboxGroupInput(ns("selected_attributes"), "Choose attributes to display", choices = c("project_name", "habitat", "location_name", "sample_name", "date", "month", "year", "customer", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "abs_reads", "norm_reads")),
+            checkboxGroupInput(ns("selected_attributes"), "Choose attributes to display", choices = c("project_name", "habitat", "location_name", "sample_name", "date", "month", "year", "customer", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "abs_reads", "norm_reads", "OTU_fasta_sequence")),
             uiOutput(ns("dynamic_attributes")),
             actionButton(ns("search_button"), "Suchen"),
             tags$hr(),
@@ -47,10 +51,13 @@ mod_search_data_server <- function(id){
         con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
         if (dbExistsTable(con, "reads")) {
 
-
-          search_results <- reactive({search_function(input$search_term) %>%
-              clean_search_results.f()})
-
+          if (is_dna_sequence(input$search_term) == TRUE) {
+            search_results <- reactive({search_sequences.f(input$search_term) %>%
+                clean_search_results.f()})
+          } else {
+            search_results <- reactive({search_function(input$search_term) %>%
+                clean_search_results.f()})
+          }
 
           if (is.null(search_results())) {
             showModal(modalDialog(
@@ -69,10 +76,10 @@ mod_search_data_server <- function(id){
               filtered_search_results %>%
                 DT::datatable(
                   options = list(order = list(1, 'asc'),
-                                 dom = 'Bfrtip',
+                                 dom = 'Blfrtip',
                                  buttons = c('csv', 'excel')),
                   extensions = 'Buttons',
-                  editable = TRUE,
+                  editable = FALSE,
                   filter = 'bottom'
                 )
             })
@@ -96,7 +103,7 @@ mod_search_data_server <- function(id){
                                 "}")
                             ),
                             rownames = FALSE,
-                            editable = TRUE)
+                            editable = FALSE)
 
 
             })
@@ -119,7 +126,7 @@ mod_search_data_server <- function(id){
         showModal(
           modalDialog(
             title = "Error",
-            "Error connecting to database or database not found",
+            "Error connecting to database or no results found for your search_term",
             easyClose = TRUE
           )
         )
