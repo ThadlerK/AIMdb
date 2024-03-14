@@ -155,45 +155,6 @@ create_barchart_tax_filtered_percent.f <- function(df, x_var, y_var, color_var, 
 }
 
 
-
-# loads data from the data base for a specific search term
-search_function <- function(search_term) {
-  con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
-  tables <- RSQLite::dbListTables(con)
-  # Durch alle Tabellen iterieren
-  for (table in tables) {
-    # SQL-Abfrage erstellen
-    rel_field = setdiff(RSQLite::dbListFields(con, table), paste(table,"_id", sep = ""))
-    for (table_col in rel_field) {
-      query <- glue::glue("
-            SELECT *
-            FROM {table}
-            WHERE {table_col} = '{search_term}';")
-
-      # Ergebnisse der Abfrage hinzufuegen
-      table_results <- RSQLite::dbGetQuery(con, query)
-      if (nrow(table_results) > 0) {
-        query <- glue::glue("
-                SELECT *
-                FROM reads
-                  INNER JOIN sample ON reads.sample_id = sample.sample_id
-                  INNER JOIN BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-                  INNER JOIN BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-                  INNER JOIN date ON sample.date_id = date.date_id
-                  INNER JOIN project ON sample.project_id = project.project_id
-                  INNER JOIN location ON sample.location_id = location.location_id
-                  INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-                  INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-                  INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-                WHERE {table}.{table_col} = '{search_term}';")
-        res = unique(RSQLite::dbGetQuery(con, query))
-        return(res)
-      }
-    }
-  }
-  dbDisconnect(con)
-}
-
 # sum the reads per BOLD_BIN, NCBI_tax_ID and the selected atributes to display
 sum_abs_reads_function <- function(selected_attributes, search_results){
   invalid_attributes <- setdiff(selected_attributes, colnames(search_results))
