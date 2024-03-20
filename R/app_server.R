@@ -60,7 +60,6 @@ app_server <- function(input, output, session) {
 
 
 
-
   output$dynamic_tabs <- renderUI({
     if(credentials()$user_auth) {
       shinydashboard::tabItems(

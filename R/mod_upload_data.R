@@ -117,7 +117,7 @@ mod_upload_data_server <- function(id){
     date.df = unique(date.df)
     row.names(date.df) = NULL
 
-    con = con_db.f("PostgreSQL")
+    con <- con_db.f("PostgreSQL")
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS public.date(
         date_id serial NOT NULL,
@@ -726,7 +726,7 @@ mod_upload_data_server <- function(id){
     dbExecute(con, query)
     DBI::dbRemoveTable(con, "temp_reads")
     print("reads relation done")
-    dbDisconnect(con)
+
 
     print("done")
     return(paste("Die Datei wurde erfolgreich hochgeladen. Pfad:", file_path))

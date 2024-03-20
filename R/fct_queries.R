@@ -19,10 +19,9 @@
 
 # Get Project names
 projects_query.f <- function(){
-  con <- con_db.f("PostgreSQL")
+
   res <- paste0("SELECT project_name FROM project")
   return(res)
-  dbDisconnect(con)
 }
 
 #Get plot data
@@ -32,45 +31,58 @@ plot_data_query.f <- function(project){
   query <- glue::glue("
                 SELECT *
                 FROM public.reads
-                  INNER JOIN public.sample ON reads.sample_id = sample.sample_id
-                  INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-                  INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-                  INNER JOIN public.date ON sample.date_id = date.date_id
-                  INNER JOIN public.project ON sample.project_id = project.project_id
-                  INNER JOIN public.location ON sample.location_id = location.location_id
-                  INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-                  INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-                  INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+                  JOIN public.sample ON reads.sample_id = sample.sample_id
+                  JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+                  JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+                  JOIN public.date ON sample.date_id = date.date_id
+                  JOIN public.project ON sample.project_id = project.project_id
+                  JOIN public.location ON sample.location_id = location.location_id
+                  JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+                  JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+                  JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
                 WHERE project.project_name IN ({project_names});")
   res = unique(DBI::dbGetQuery(con, query))
-  DBI::dbDisconnect(con)
   return(res)
 
 }
 
+#try if data base connection is still valid
+db_con_valid <- function(con) {
+  tryCatch({
+    DBI::dbGetQuery(con, "SELECT 1")
+    TRUE
+  }, error = function(e) {
+    FALSE
+  })
+}
+
 #connect to db
 con_db.f <- function(SQL_typ){
-  if (SQL_typ == "RSQLite") {
-    return(RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db"))
-  } else if (SQL_typ == "PostgreSQL") {
-    dsn_database = "AIM_db"
-    dsn_hostname = "127.0.0.1"
-    dsn_port = 5432
-    dsn_uid = "postgres"
-    dsn_pwd = "Ö+87=V"
-    return(dbConnect(dbDriver("PostgreSQL"),
-                     dbname = dsn_database,
-                     port = dsn_port,
-                     user = dsn_uid,
-#                  rstudioapi::askForPassword("Database user"),
-                     password = dsn_pwd
-#  rstudioapi::askForPassword("Database password")
-    ))
+  if (exists("con") && db_con_valid(con)){
+    return(con)
+  } else {
+    if (SQL_typ == "RSQLite") {
+      return(RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db"))
+    } else if (SQL_typ == "PostgreSQL") {
+      dsn_database = "AIM_db"
+      dsn_hostname = "127.0.0.1"
+      dsn_port = 5432
+      dsn_uid = "postgres"
+      dsn_pwd = "Ö+87=V"
+      return(dbConnect(dbDriver("PostgreSQL"),
+                       dbname = dsn_database,
+                       port = dsn_port,
+                       user = dsn_uid,
+                       #                  rstudioapi::askForPassword("Database user"),
+                       password = dsn_pwd
+                       #  rstudioapi::askForPassword("Database password")
+      ))
+    }
   }
 }
 
 # loads data from the data base for a specific search term
-search_function <- function(search_term) {
+search_function_old <- function(search_term) {
   con <- con_db.f("PostgreSQL")
   tables <- dbListTables(con)
   # Durch alle Tabellen iterieren
@@ -104,13 +116,55 @@ search_function <- function(search_term) {
       }
     }
   }
-  dbDisconnect(con)
 }
 
-improve_search_function <- function(search_term){
+search_function_2 <- function(search_term) {
+  con <- con_db.f("PostgreSQL")
+  tables <- dbListTables(con)
+  # Ergebnisliste initialisieren
+  res <- list()
+
+  # Durch alle Tabellen iterieren
+  for (table in tables) {
+    # Spaltennamen der aktuellen Tabelle abrufen
+    rel_field <- setdiff(dbListFields(con, table), paste(table, "_id", sep = ""))
+
+    # Durch alle Spaltennamen iterieren
+    for (table_col in rel_field) {
+      # SQL-Abfrage erstellen
+      query <- glue::glue("
+            SELECT *
+            FROM public.{table}
+            WHERE {table_col} = '{search_term}'
+          ")
+
+      # Ergebnisse der Abfrage hinzufügen
+      table_results <- dbGetQuery(con, query)
+      if (nrow(table_results) > 0) {
+        res[[table]] <- table_results
+      }
+    }
+  }
+
+
+
+  # Ergebnisse zurückgeben
+  return(res)
+}
+
+
+search_function <- function(search_term){
   con <- con_db.f("PostgreSQL")
   query <- glue::glue("
-                SELECT bold_db.bold_bin_uri, ncbi_gb.ncbi_tax_id
+    SELECT table_name, column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND data_type = 'character varying';
+  ")
+  char_info <- dbGetQuery(con, query)
+  search_columns <- paste(char_info$table_name, char_info$column_name, sep = ".")
+  query <- glue::glue("
+                SELECT *
                 FROM public.reads
                   JOIN public.sample ON reads.sample_id = sample.sample_id
                   JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
@@ -121,7 +175,7 @@ improve_search_function <- function(search_term){
                   JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
                   JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
                   JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-                WHERE '{search_term}' IN (consensus_taxonomy.consensus_Family);
+                WHERE '{search_term}' IN ({toString(search_columns)})
   ")
   dbGetQuery(con, query)
 }
@@ -140,15 +194,15 @@ search_sequences.f <- function(sequences) {
     query_original <- paste0("
       SELECT *
       FROM public.reads
-        INNER JOIN public.sample ON reads.sample_id = sample.sample_id
-        INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-        INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-        INNER JOIN public.date ON sample.date_id = date.date_id
-        INNER JOIN public.project ON sample.project_id = project.project_id
-        INNER JOIN public.location ON sample.location_id = location.location_id
-        INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-        INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-        INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+        JOIN public.sample ON reads.sample_id = sample.sample_id
+        JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+        JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+        JOIN public.date ON sample.date_id = date.date_id
+        JOIN public.project ON sample.project_id = project.project_id
+        JOIN public.location ON sample.location_id = location.location_id
+        JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+        JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+        JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
       WHERE seq = '", seq, "'")
     result_original <- unique(dbGetQuery(con, query_original))
 
@@ -181,6 +235,5 @@ search_sequences.f <- function(sequences) {
     return(res)
 #  }
 
-  # Schließen der Datenbankverbindung
-  RSQLite::dbDisconnect(con)
+
 }

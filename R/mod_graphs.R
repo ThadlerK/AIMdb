@@ -27,8 +27,8 @@ mod_graphs_server <- function(id){
           sidebarLayout(
             sidebarPanel(
               HTML("<h3>Plot configuration</h3>"),
-              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con_db.f("PostgreSQL"), projects_query.f())$project_name),
-              selectInput(ns("plot_type"), "Choose a plot type", choices = c("None","Bar chart", "Box plot", "Line plot")),
+              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con <- con_db.f("PostgreSQL"), projects_query.f())$project_name),
+              selectInput(ns("plot_type"), "Choose a plot type", choices = c("None","Bar chart")),
               uiOutput(ns("plot_config")),
             ),
             mainPanel(
@@ -48,13 +48,13 @@ mod_graphs_server <- function(id){
             if (input$plot_type == "Line plot"){
               tagList(
                 selectInput(ns("x_var"), "x-axis", choices = c("date", "month", "year"), selected = NULL),
-                selectInput(ns("y_var"), "y-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL)
+                selectInput(ns("y_var"), "y-axis", choices = tolower(c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads")), selected = NULL)
               )
             },
             if(input$plot_type == 'Bar chart'){
-              tagList(selectInput(ns("x_var"), "x-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL),
-                      selectInput(ns("y_var"), "y-axis", choices = c("BOLD_BIN_uri", "NCBI_tax_ID", "sample_name","customer_sample_id", "abs_reads", "reads_id", "project_name", "BOLD_Process_ID")),
-                      selectInput(ns("color_var"), "Color variable", choices = c("None","date", "month", "year", "customer", "project_name", "location_name", "habitat", "sample_name"), selected = NULL),
+              tagList(selectInput(ns("x_var"), "x-axis", choices = tolower(c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads")), selected = NULL),
+                      selectInput(ns("y_var"), "y-axis", choices = tolower(c("BOLD_BIN_uri", "NCBI_tax_ID", "sample_name","customer_sample_id", "abs_reads", "reads_id", "project_name", "BOLD_Process_ID"))),
+                      selectInput(ns("color_var"), "Color variable", choices = tolower(c("None","date", "month", "year", "customer", "project_name", "location_name", "habitat", "sample_name")), selected = NULL),
                       selectInput(ns("count_typ"), "Count typ", choices = c("unique_counts", "read_counts")),
                       shinyWidgets::prettySwitch(
                         inputId = ns("percent_id"),
@@ -71,8 +71,8 @@ mod_graphs_server <- function(id){
                       uiOutput(ns("filter_taxon_config"))
               )},
             if(input$plot_type == 'Box plot'){
-              tagList(selectInput(ns("x_var"), "x-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL),
-                      selectInput(ns("y_var"), "y-axis", choices = c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads"), selected = NULL)
+              tagList(selectInput(ns("x_var"), "x-axis", choices = tolower(c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads")), selected = NULL),
+                      selectInput(ns("y_var"), "y-axis", choices = tolower(c("date", "month", "year", "customer", "project_name", "location_name", "habitat", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "NCBI_Accession_ID", "NCBI_tax_ID", "sample_name", "customer_sample_id", "abs_reads", "norm_reads")), selected = NULL)
               )},
             actionButton(
               inputId = ns("get_graph"),
@@ -92,7 +92,7 @@ mod_graphs_server <- function(id){
         output$filter_taxon_config = renderUI({
           req(input$filter_taxon_id)
           tagList(
-            selectInput(ns("taxonomy_type"), "Choose taxonomy to be filtered", choices = c("BOLD_BIN_uri","NCBI_tax_ID","consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species")),
+            selectInput(ns("taxonomy_type"), "Choose taxonomy to be filtered", choices = tolower(c("BOLD_BIN_uri","NCBI_tax_ID","consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species"))),
             textInput(ns("filter_term"), "Enter comma-separated values:")
           )
         })
