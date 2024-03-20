@@ -7,7 +7,7 @@
 #' @noRd
 #'
 #' @importFrom shiny NS tagList
-#' @import plotly dplyr
+#' @import plotly dplyr DBI
 #' @importFrom DT DTOutput
 #' @importFrom DT renderDT
 #' @importFrom DT datatable
@@ -27,7 +27,7 @@ mod_graphs_server <- function(id){
           sidebarLayout(
             sidebarPanel(
               HTML("<h3>Plot configuration</h3>"),
-              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = RSQLite::dbGetQuery(con_db.f(), projects_query.f())$project_name),
+              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con_db.f("PostgreSQL"), projects_query.f())$project_name),
               selectInput(ns("plot_type"), "Choose a plot type", choices = c("None","Bar chart", "Box plot", "Line plot")),
               uiOutput(ns("plot_config")),
             ),

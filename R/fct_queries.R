@@ -7,6 +7,7 @@
 #' @noRd
 #'
 #' @import RPostgreSQL
+#' @import DBI
 #' @importFrom shiny NS
 #' @importFrom DT DTOutput
 #' @importFrom DT renderDT
@@ -18,7 +19,7 @@
 
 # Get Project names
 projects_query.f <- function(){
-  con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+  con <- con_db.f("PostgreSQL")
   res <- paste0("SELECT project_name FROM project")
   return(res)
   dbDisconnect(con)
@@ -26,79 +27,79 @@ projects_query.f <- function(){
 
 #Get plot data
 plot_data_query.f <- function(project){
-  con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+  con <- con_db.f("PostgreSQL")
   project_names <- paste0("'", project, "'", collapse = ", ")
   query <- glue::glue("
                 SELECT *
-                FROM reads
-                  INNER JOIN sample ON reads.sample_id = sample.sample_id
-                  INNER JOIN BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-                  INNER JOIN BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-                  INNER JOIN date ON sample.date_id = date.date_id
-                  INNER JOIN project ON sample.project_id = project.project_id
-                  INNER JOIN location ON sample.location_id = location.location_id
-                  INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-                  INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-                  INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+                FROM public.reads
+                  INNER JOIN public.sample ON reads.sample_id = sample.sample_id
+                  INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+                  INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+                  INNER JOIN public.date ON sample.date_id = date.date_id
+                  INNER JOIN public.project ON sample.project_id = project.project_id
+                  INNER JOIN public.location ON sample.location_id = location.location_id
+                  INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+                  INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+                  INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
                 WHERE project.project_name IN ({project_names});")
-  res = unique(RSQLite::dbGetQuery(con, query))
-  RSQLite::dbDisconnect(con)
+  res = unique(DBI::dbGetQuery(con, query))
+  DBI::dbDisconnect(con)
   return(res)
 
 }
 
 #connect to db
 con_db.f <- function(SQL_typ){
-    if (SQL_typ == "RSQLite") {
-      RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
-    } else if (SQL_typ == "PostgreSQL") {
-      dsn_database = "AIM_db"
-      dsn_hostname = "127.0.0.1"
-      dsn_port = 5432
-      dsn_uid = "postgres"
-      dsn_pwd = "Ö+87=V"
-      dbConnect(dbDriver("PostgreSQL"),
-                       dbname = dsn_database,
-                       port = dsn_port,
-                       user = dsn_uid,
+  if (SQL_typ == "RSQLite") {
+    return(RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db"))
+  } else if (SQL_typ == "PostgreSQL") {
+    dsn_database = "AIM_db"
+    dsn_hostname = "127.0.0.1"
+    dsn_port = 5432
+    dsn_uid = "postgres"
+    dsn_pwd = "Ö+87=V"
+    return(dbConnect(dbDriver("PostgreSQL"),
+                     dbname = dsn_database,
+                     port = dsn_port,
+                     user = dsn_uid,
 #                  rstudioapi::askForPassword("Database user"),
-                       password = dsn_pwd
+                     password = dsn_pwd
 #  rstudioapi::askForPassword("Database password")
-      )
-    }
+    ))
   }
+}
 
 # loads data from the data base for a specific search term
 search_function <- function(search_term) {
-  con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
-  tables <- RSQLite::dbListTables(con)
+  con <- con_db.f("PostgreSQL")
+  tables <- dbListTables(con)
   # Durch alle Tabellen iterieren
   for (table in tables) {
     # SQL-Abfrage erstellen
-    rel_field = setdiff(RSQLite::dbListFields(con, table), paste(table,"_id", sep = ""))
+    rel_field = setdiff(dbListFields(con, table), paste(table,"_id", sep = ""))
     for (table_col in rel_field) {
       query <- glue::glue("
             SELECT *
-            FROM {table}
+            FROM public.{table}
             WHERE {table_col} = '{search_term}';")
 
       # Ergebnisse der Abfrage hinzufuegen
-      table_results <- RSQLite::dbGetQuery(con, query)
+      table_results <- dbGetQuery(con, query)
       if (nrow(table_results) > 0) {
         query <- glue::glue("
                 SELECT *
-                FROM reads
-                  INNER JOIN sample ON reads.sample_id = sample.sample_id
-                  INNER JOIN BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-                  INNER JOIN BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-                  INNER JOIN date ON sample.date_id = date.date_id
-                  INNER JOIN project ON sample.project_id = project.project_id
-                  INNER JOIN location ON sample.location_id = location.location_id
-                  INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-                  INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-                  INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-                WHERE {table}.{table_col} = '{search_term}';")
-        res = unique(RSQLite::dbGetQuery(con, query))
+                FROM public.reads
+                  INNER JOIN public.sample ON reads.sample_id = sample.sample_id
+                  INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+                  INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+                  INNER JOIN public.date ON sample.date_id = date.date_id
+                  INNER JOIN public.project ON sample.project_id = project.project_id
+                  INNER JOIN public.location ON sample.location_id = location.location_id
+                  INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+                  INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+                  INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+                WHERE public.{table}.{table_col} = '{search_term}';")
+        res = unique(dbGetQuery(con, query))
         return(res)
       }
     }
@@ -106,10 +107,29 @@ search_function <- function(search_term) {
   dbDisconnect(con)
 }
 
+improve_search_function <- function(search_term){
+  con <- con_db.f("PostgreSQL")
+  query <- glue::glue("
+                SELECT bold_db.bold_bin_uri, ncbi_gb.ncbi_tax_id
+                FROM public.reads
+                  JOIN public.sample ON reads.sample_id = sample.sample_id
+                  JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+                  JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+                  JOIN public.date ON sample.date_id = date.date_id
+                  JOIN public.project ON sample.project_id = project.project_id
+                  JOIN public.location ON sample.location_id = location.location_id
+                  JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+                  JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+                  JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+                WHERE '{search_term}' IN (consensus_taxonomy.consensus_Family);
+  ")
+  dbGetQuery(con, query)
+}
+
 #search DNA seq
 search_sequences.f <- function(sequences) {
   # Öffnen der Datenbankverbindung
-  con <- con_db.f()
+  con <- con_db.f("PostgreSQL")
 
   # Durchlaufen der übergebenen Sequenzen
 #  for (seq in sequences) {
@@ -119,34 +139,34 @@ search_sequences.f <- function(sequences) {
     # Suchabfrage für die Originalsequenz
     query_original <- paste0("
       SELECT *
-      FROM reads
-        INNER JOIN sample ON reads.sample_id = sample.sample_id
-        INNER JOIN BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-        INNER JOIN BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-        INNER JOIN date ON sample.date_id = date.date_id
-        INNER JOIN project ON sample.project_id = project.project_id
-        INNER JOIN location ON sample.location_id = location.location_id
-        INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-        INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-        INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+      FROM public.reads
+        INNER JOIN public.sample ON reads.sample_id = sample.sample_id
+        INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+        INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+        INNER JOIN public.date ON sample.date_id = date.date_id
+        INNER JOIN public.project ON sample.project_id = project.project_id
+        INNER JOIN public.location ON sample.location_id = location.location_id
+        INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+        INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+        INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
       WHERE seq = '", seq, "'")
-    result_original <- unique(RSQLite::dbGetQuery(con, query_original))
+    result_original <- unique(dbGetQuery(con, query_original))
 
     # Suchabfrage für das reverse komplementäre Sequenz
     query_reverse <- paste0("
       SELECT *
-      FROM reads
-        INNER JOIN sample ON reads.sample_id = sample.sample_id
-        INNER JOIN BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-        INNER JOIN BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-        INNER JOIN date ON sample.date_id = date.date_id
-        INNER JOIN project ON sample.project_id = project.project_id
-        INNER JOIN location ON sample.location_id = location.location_id
-        INNER JOIN NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-        INNER JOIN NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-        INNER JOIN consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+      FROM public.reads
+        INNER JOIN public.sample ON reads.sample_id = sample.sample_id
+        INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+        INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+        INNER JOIN public.date ON sample.date_id = date.date_id
+        INNER JOIN public.project ON sample.project_id = project.project_id
+        INNER JOIN public.location ON sample.location_id = location.location_id
+        INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+        INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+        INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
       WHERE seq = '", rev_seq, "'")
-    result_reverse <- unique(RSQLite::dbGetQuery(con, query_reverse))
+    result_reverse <- unique(dbGetQuery(con, query_reverse))
 
     # Verarbeiten der Suchergebnisse
     if (nrow(result_original) > 0 && nrow(result_reverse) > 0){

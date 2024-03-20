@@ -48,7 +48,7 @@ mod_search_data_server <- function(id){
 
     observeEvent(input$search_button, {
       tryCatch( expr = {
-        con <- RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db")
+        con <- con_db.f("PostgreSQL")
         if (dbExistsTable(con, "reads")) {
 
           if (is_dna_sequence(input$search_term) == TRUE) {
