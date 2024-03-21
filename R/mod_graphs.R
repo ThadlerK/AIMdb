@@ -27,7 +27,7 @@ mod_graphs_server <- function(id){
           sidebarLayout(
             sidebarPanel(
               HTML("<h3>Plot configuration</h3>"),
-              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con <- con_db.f("PostgreSQL"), projects_query.f())$project_name),
+              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con <- con_db.f(), projects_query.f())$project_name),
               selectInput(ns("plot_type"), "Choose a plot type", choices = c("None","Bar chart")),
               uiOutput(ns("plot_config")),
             ),

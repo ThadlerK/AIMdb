@@ -66,7 +66,7 @@ app_server <- function(input, output, session) {
         mod_upload_data_ui(id = "upload_data"),
         mod_search_data_ui(id = "search_data"),
         mod_graphs_ui(id = "graphs"),
-        shinydashboard::tabItem(tabName = "del_table", uiOutput("tab4UI")),
+        mod_data_management_ui(id = "data_management"),
         shinydashboard::tabItem(tabName = "update_table", uiOutput("tab5UI")),
         shinydashboard::tabItem(tabName = "create_table", uiOutput("tab6UI")),
         shinydashboard::tabItem(tabName = "insert_value", uiOutput("tab7UI")),
@@ -101,7 +101,7 @@ app_server <- function(input, output, session) {
   mod_upload_data_server(id = "upload_data")
   mod_search_data_server("search_data")
   mod_graphs_server(id = "graphs")
-
+  mod_data_management_server(id = "data_management")
 
 
 }

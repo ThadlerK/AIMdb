@@ -49,7 +49,7 @@ mod_search_data_server <- function(id){
     observeEvent(input$search_button, {
       tryCatch( expr = {
 
-        if (dbExistsTable(con, "reads")) {
+        if (dbExistsTable(con_db.f("PostgreSQL"), "reads")) {
 
           if (is_dna_sequence(input$search_term) == TRUE) {
             search_results <- reactive({search_sequences.f(input$search_term) %>%
