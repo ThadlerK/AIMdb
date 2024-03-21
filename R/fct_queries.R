@@ -57,27 +57,33 @@ db_con_valid <- function(con) {
 }
 
 #connect to db
-con_db.f <- function(SQL_typ){
-  if (exists("con") && db_con_valid(con)){
+con_db.f <- function(){
+  if (exists("con")){
+    print("already connected")
     return(con)
   } else {
-    if (SQL_typ == "RSQLite") {
-      return(RSQLite::dbConnect(RSQLite::SQLite(), dbname = "HIPPDatenbank.db"))
-    } else if (SQL_typ == "PostgreSQL") {
+    tryCatch(expr = {
+      print("Connecting to PostgreSQL...")
       dsn_database = "AIM_db"
       dsn_hostname = "127.0.0.1"
       dsn_port = 5432
       dsn_uid = "postgres"
       dsn_pwd = "Ö+87=V"
-      return(dbConnect(dbDriver("PostgreSQL"),
+      con <- dbConnect(dbDriver("PostgreSQL"),
                        dbname = dsn_database,
                        port = dsn_port,
                        user = dsn_uid,
-                       #                  rstudioapi::askForPassword("Database user"),
+                       #rstudioapi::askForPassword("Database user"),
                        password = dsn_pwd
-                       #  rstudioapi::askForPassword("Database password")
-      ))
-    }
+                       #rstudioapi::askForPassword("Database password")
+      )
+      print("connected")
+      return(con)
+
+    },
+    error = function(e){
+      return(paste("connect did not work"))
+    })
   }
 }
 
