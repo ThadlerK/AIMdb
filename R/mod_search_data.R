@@ -31,7 +31,7 @@ mod_search_data_server <- function(id){
             HTML("<h3>Search configuration</h3>"),
             checkboxGroupInput(ns("selected_attributes"), "Choose attributes to display", choices = tolower(c("project_name", "habitat", "location_name", "sample_name", "date", "month", "year", "customer", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID", "BIN_sharing", "BIN_species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD", "consensus_Domain", "consensus_Phylum", "consensus_Class", "consensus_Order", "consensus_Family", "consensus_Genus", "consensus_Species", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI", "abs_reads", "norm_reads", "OTU_fasta_sequence"))),
             uiOutput(ns("dynamic_attributes")),
-            actionButton(ns("search_button"), "Suchen"),
+            actionButton(ns("search_button"), "Search"),
             tags$hr(),
             textOutput(ns("result_count")),
           ),
@@ -49,7 +49,7 @@ mod_search_data_server <- function(id){
     observeEvent(input$search_button, {
       tryCatch( expr = {
 
-        if (dbExistsTable(con_db.f("PostgreSQL"), "reads")) {
+        if (dbExistsTable(con, "reads")) {
 
           if (is_dna_sequence(input$search_term) == TRUE) {
             search_results <- reactive({search_sequences.f(input$search_term) %>%
@@ -89,19 +89,19 @@ mod_search_data_server <- function(id){
             output$summary_table <- DT::renderDT({
               data = summary_table
               DT::datatable(data,
-                            options = list(
-                              columnDefs = list(
-                                list(visible=FALSE, targets = (which(grepl("\\.u", names(data)))-1))
-                              ),
-
-                              rowCallback = JS(
-                                "function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {",
-                                "for(var i = 1; i < ", ceiling(ncol(data)/2), "; i++) {",
-                                "var full_text = aData[i + ", floor(ncol(data)/2), "];",
-                                "$('td:eq('+i+')', nRow).attr('title', full_text);",
-                                "}",
-                                "}")
-                            ),
+#                            options = list(
+#                              columnDefs = list(
+#                                list(visible=FALSE, targets = (which(grepl("\\.u", names(data)))-1))
+ #                             ),
+#
+#                              rowCallback = JS(
+#                                "function(nRow, aData, iDisplayIndex, iDisplayIndexFull) {",
+#                                "for(var i = 1; i < ", ceiling(ncol(data)/2), "; i++) {",
+#                                "var full_text = aData[i + ", floor(ncol(data)/2), "];",
+#                                "$('td:eq('+i+')', nRow).attr('title', full_text);",
+#                                "}",
+#                                "}")
+#                            ),
                             rownames = FALSE,
                             editable = FALSE)
 

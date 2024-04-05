@@ -27,9 +27,10 @@ mod_graphs_server <- function(id){
           sidebarLayout(
             sidebarPanel(
               HTML("<h3>Plot configuration</h3>"),
-              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con <- con_db.f(), projects_query.f())$project_name),
+              actionButton(ns("refresh_data_btn"), "Refresh data"),
+              checkboxGroupInput(ns("plot_data"), "Choose the project data:", choices = dbGetQuery(con, projects_query.f())$project_name),
               selectInput(ns("plot_type"), "Choose a plot type", choices = c("None","Bar chart")),
-              uiOutput(ns("plot_config")),
+              uiOutput(ns("plot_config"))
             ),
             mainPanel(
               plotly::plotlyOutput(ns("results_plot")),
@@ -37,6 +38,13 @@ mod_graphs_server <- function(id){
             )
           )
       )
+    })
+
+
+
+    observeEvent(input$refresh_data_btn,{
+        updateCheckboxGroupInput(session, "plot_data", selected = NULL,
+                                 choices = dbGetQuery(con, projects_query.f())$project_name)
     })
 
     observeEvent(input$plot_data,{

@@ -19,10 +19,10 @@ app_server <- function(input, output, session) {
   options(shiny.maxRequestSize = 100 * 1024^2)
 
   user_base <- data.frame(
-    username = c("user1", "user2"),
-    password = c("pass1", "pass2"),
-    password_hash = sapply(c("pass1", "pass2"), sodium::password_store),
-    permissions = c("manager", "admin")
+    username = c("jerome"),
+    password = c("aimdb"),
+    password_hash = sapply(c("aimdb"), sodium::password_store),
+    permissions = c("admin")
   )
 
   observe({
@@ -32,6 +32,10 @@ app_server <- function(input, output, session) {
       shinyjs::addClass(selector = "body", class = "sidebar-collapse")
     }
   })
+
+
+  con <<- con_db.f()
+
 
   logout_init <- shinyauthr::logoutServer(
     id = "logout",
@@ -67,10 +71,8 @@ app_server <- function(input, output, session) {
         mod_search_data_ui(id = "search_data"),
         mod_graphs_ui(id = "graphs"),
         mod_data_management_ui(id = "data_management"),
-        shinydashboard::tabItem(tabName = "update_table", uiOutput("tab5UI")),
-        shinydashboard::tabItem(tabName = "create_table", uiOutput("tab6UI")),
-        shinydashboard::tabItem(tabName = "insert_value", uiOutput("tab7UI")),
-        shinydashboard::tabItem(tabName = "about", uiOutput("tab8UI"))
+        mod_data_editor_ui("data_editor"),
+        mod_update_values_ui("update_values")
       )
     }
   })
@@ -102,6 +104,7 @@ app_server <- function(input, output, session) {
   mod_search_data_server("search_data")
   mod_graphs_server(id = "graphs")
   mod_data_management_server(id = "data_management")
-
+  mod_data_editor_server("data_editor")
+  mod_update_values_server("update_values")
 
 }

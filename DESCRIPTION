@@ -22,6 +22,7 @@ Imports:
     RSQLite,
     scales,
     shiny (>= 1.8.0),
+    shinyalert,
     shinyauthr,
     shinydashboard,
     shinyjs,

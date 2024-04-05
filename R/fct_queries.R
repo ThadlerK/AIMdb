@@ -26,7 +26,6 @@ projects_query.f <- function(){
 
 #Get plot data
 plot_data_query.f <- function(project){
-  con <- con_db.f("PostgreSQL")
   project_names <- paste0("'", project, "'", collapse = ", ")
   query <- glue::glue("
                 SELECT *
@@ -58,7 +57,7 @@ db_con_valid <- function(con) {
 
 #connect to db
 con_db.f <- function(){
-  if (exists("con")){
+  if (db_con_valid(con)){
     print("already connected")
     return(con)
   } else {
@@ -89,7 +88,7 @@ con_db.f <- function(){
 
 # loads data from the data base for a specific search term
 search_function_old <- function(search_term) {
-  con <- con_db.f("PostgreSQL")
+  con <- con_db.f()
   tables <- dbListTables(con)
   # Durch alle Tabellen iterieren
   for (table in tables) {
@@ -125,7 +124,7 @@ search_function_old <- function(search_term) {
 }
 
 search_function_2 <- function(search_term) {
-  con <- con_db.f("PostgreSQL")
+  con <- con_db.f()
   tables <- dbListTables(con)
   # Ergebnisliste initialisieren
   res <- list()
@@ -160,7 +159,6 @@ search_function_2 <- function(search_term) {
 
 
 search_function <- function(search_term){
-  con <- con_db.f("PostgreSQL")
   query <- glue::glue("
     SELECT table_name, column_name
     FROM information_schema.columns
@@ -181,6 +179,7 @@ search_function <- function(search_term){
                   JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
                   JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
                   JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+                  JOIN public.seq ON reads.seq_id = seq.seq_id
                 WHERE '{search_term}' IN ({toString(search_columns)})
   ")
   dbGetQuery(con, query)
@@ -189,15 +188,14 @@ search_function <- function(search_term){
 #search DNA seq
 search_sequences.f <- function(sequences) {
   # Öffnen der Datenbankverbindung
-  con <- con_db.f("PostgreSQL")
 
   # Durchlaufen der übergebenen Sequenzen
-#  for (seq in sequences) {
+  for (seq in sequences) {
     # Erstellen des reverse komplementären Strings
     rev_seq <- reverse_complement(seq)
 
     # Suchabfrage für die Originalsequenz
-    query_original <- paste0("
+    query <- paste0("
       SELECT *
       FROM public.reads
         JOIN public.sample ON reads.sample_id = sample.sample_id
@@ -209,37 +207,95 @@ search_sequences.f <- function(sequences) {
         JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
         JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
         JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-      WHERE seq = '", seq, "'")
-    result_original <- unique(dbGetQuery(con, query_original))
-
-    # Suchabfrage für das reverse komplementäre Sequenz
-    query_reverse <- paste0("
+        JOIN public.seq ON reads.seq_id = seq.seq_id
+      WHERE otu_fasta_sequence LIKE '%", seq, "%'
+      UNION ALL
       SELECT *
       FROM public.reads
-        INNER JOIN public.sample ON reads.sample_id = sample.sample_id
-        INNER JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
-        INNER JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
-        INNER JOIN public.date ON sample.date_id = date.date_id
-        INNER JOIN public.project ON sample.project_id = project.project_id
-        INNER JOIN public.location ON sample.location_id = location.location_id
-        INNER JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
-        INNER JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
-        INNER JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
-      WHERE seq = '", rev_seq, "'")
-    result_reverse <- unique(dbGetQuery(con, query_reverse))
+        JOIN public.sample ON reads.sample_id = sample.sample_id
+        JOIN public.BOLD_db ON reads.BOLD_db_id = BOLD_db.BOLD_db_id
+        JOIN public.BOLD_tax ON BOLD_db.BOLD_tax_id = BOLD_tax.BOLD_tax_id
+        JOIN public.date ON sample.date_id = date.date_id
+        JOIN public.project ON sample.project_id = project.project_id
+        JOIN public.location ON sample.location_id = location.location_id
+        JOIN public.NCBI_gb ON reads.NCBI_gb_id = NCBI_gb.NCBI_gb_id
+        JOIN public.NCBI_tax ON NCBI_gb.taxonomy_id = NCBI_tax.taxonomy_id
+        JOIN public.consensus_taxonomy ON reads.ct_id = consensus_taxonomy.ct_id
+        JOIN public.seq ON reads.seq_id = seq.seq_id
+      WHERE otu_fasta_sequence LIKE '%", rev_seq, "%'")
+    res <- unique(dbGetQuery(con, query))
 
-    # Verarbeiten der Suchergebnisse
-    if (nrow(result_original) > 0 && nrow(result_reverse) > 0){
-      res <- bind_rows(result_original, result_reverse)
-    } else if (nrow(result_original) > 0) {
-      res <- result_original
-    } else if (nrow(result_reverse) > 0) {
-      res <- result_reverse
-    } else {
-      res <- NULL
+  }
+  return(res)
+
+}
+
+# function to show metadata
+show_table_metadata <- function(connection, table_name) {
+  meta <- dbGetQuery(connection, paste("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '", table_name, "'", sep = ""))
+  return(meta)
+}
+
+# function to give all columns for a specific table
+show_all_col <- function(connection, table){
+  columns <- dbListFields(connection, table)
+  return(columns)
+}
+
+
+# function to show which tables exists
+show_all_tables <- function(connection) {
+  tables <- dbListTables(connection)
+  return(tables)
+}
+
+# function to create new tables
+create_table <- function(connection, table_name, columns) {
+  # Erstellen Sie eine SQL-Anweisung zum Erstellen der Tabelle basierend auf den angegebenen Spalten
+  create_statement <- paste("CREATE TABLE ", table_name, "(", columns, ")", sep = "")
+  # Führen Sie die SQL-Anweisung aus
+  dbExecute(connection, create_statement)
+}
+
+# function to delete a table
+delete_table <- function(connection, table_name) {
+  # Erstellen Sie eine SQL-Anweisung zum Löschen der Tabelle
+  delete_statement <- paste("DROP TABLE", table_name)
+  # Führen Sie die SQL-Anweisung aus
+  dbExecute(connection, delete_statement)
+}
+
+delete_tables_in_order <- function() {
+  tables <- c("reads", "sample", "bold_db", "ncbi_gb", "consensus_taxonomy",
+              "seq", "date", "location", "project", "ncbi_tax", "bold_tax")
+
+  for (table in tables) {
+    dbExecute(con, paste("DROP TABLE IF EXISTS", table, ";"))
+    print(paste("Table", table, "has been dropped."))
+  }
+
+  print("All tables have been dropped.")
+}
+
+delete_temp_tables <- function() {
+  # SQL-Abfrage, um alle Tabellen zu finden, die mit "temp" beginnen
+  query <- "
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name LIKE 'temp%';
+  "
+
+  # Ausführen der SQL-Abfrage und Abrufen der Tabellennamen
+  temp_tables <- dbGetQuery(con, query)$table_name
+
+  # Überprüfen, ob Tabellen gefunden wurden
+  if (length(temp_tables) > 0) {
+    # Durch jede gefundene Tabelle iterieren und sie löschen
+    for (table in temp_tables) {
+      dbExecute(con, paste("DROP TABLE IF EXISTS", table, ";"))
+      print(paste("Table", table, "has been dropped."))
     }
-    return(res)
-#  }
-
-
+  } else {
+    print("No tables starting with 'temp' found. Nothing to delete.")
+  }
 }

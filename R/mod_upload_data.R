@@ -103,21 +103,29 @@ mod_upload_data_server <- function(id){
     col_names = unlist(raw_data[r_indice_BOLD_Process_ID,])
     names(raw_data) = col_names
     colnames(raw_data) = gsub("%", "_", colnames(raw_data))
+    df_clean <- raw_data[r_indice_BOLD_Process_ID:nrow(raw_data),]
+    df_clean <- df_clean[complete.cases(df_clean$BOLD_Process_ID, df_clean$NCBI_Accession_ID),]
+    raw_data <- rbind(raw_data[1:(r_indice_BOLD_Process_ID-1),], df_clean)
     print("cleaning done")
     ########################################################### create date relation ###########################################################
+    delete_temp_tables()
+
     date.df = data.frame()
     start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
-    date.df = as.data.frame(t(raw_data[r_indice_date, start.col: end.col ]))
-    colnames(date.df) = "date"
-    date.df$date = as.numeric(date.df$date)
-    date.df$date = as.Date(date.df$date, origin = "1899-12-30")
-    date.df$month = month.name[as.numeric(format(date.df$date, "%m"))]
-    date.df$year = format(date.df$date, "%Y")
+    if (length(r_indice_date) == 0) {
+      date.df <- data.frame(date = as.Date(NA), month = NA_character_, year = NA_character_)
+    } else {
+      date.df = as.data.frame(t(raw_data[r_indice_date, start.col: end.col ]))
+      colnames(date.df) = "date"
+      date.df$date = as.numeric(date.df$date)
+      date.df$date = as.Date(date.df$date, origin = "1899-12-30")
+      date.df$month = month.name[as.numeric(format(date.df$date, "%m"))]
+      date.df$year = format(date.df$date, "%Y")
+    }
     date.df = unique(date.df)
     row.names(date.df) = NULL
 
-    con <- con_db.f()
     dbExecute(con, "
       CREATE TABLE IF NOT EXISTS public.date(
         date_id serial NOT NULL,
@@ -136,7 +144,7 @@ mod_upload_data_server <- function(id){
       WHERE NOT EXISTS (
           SELECT 1
           FROM public.date
-          WHERE date = td.date AND month = td.month AND year = td.year
+          WHERE COALESCE(date, NULL) = COALESCE(td.date, NULL) AND COALESCE(month, '') = COALESCE(td.month, '') AND COALESCE(year, '') = COALESCE(td.year, '')
       )
     ")
     dbExecute(con, query)
@@ -171,7 +179,7 @@ mod_upload_data_server <- function(id){
     print("project relation done")
     ########################################################### create location relation ###########################################################
     location.df = data.frame()
-    start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
+    start.col = grep("customer_sampleID", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
     if (length(r_indice_habitat) == 0) {
       location.df = as.data.frame(t(raw_data[r_indice_customer_sample_id,c(start.col:end.col)]))
@@ -181,7 +189,7 @@ mod_upload_data_server <- function(id){
     }
     colnames(location.df) = c("location_name", "habitat")
     location.df$habitat = as.character(location.df$habitat)
-    location.df$location_name = gsub("[0-9\\s]", "", location.df$location_name)
+#    location.df$location_name = gsub("[0-9\\s]", "", location.df$location_name)
     location.df = location.df %>%
       distinct(.data$location_name,.data$habitat, .keep_all = T)
 
@@ -475,21 +483,33 @@ mod_upload_data_server <- function(id){
     ########################################################### create sample relation ###########################################################
     #read in sample metadata
     sample.df = data.frame()
-    start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
+    start.col = grep("customer_sampleID", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
-    if (length(r_indice_habitat) == 0) {
+    if(length(r_indice_habitat) == 0 && length(r_indice_date) == 0){
+      sample.df = as.data.frame(t(raw_data[c(r_indice_customer_sample_id, r_indice_BOLD_Process_ID),start.col: end.col]))
+      colnames(sample.df) = c("customer_sample_id", "sample_name")
+      sample.df$habitat <- NA_character_
+      sample.df$date <- as.Date(NA)
+    } else if (length(r_indice_habitat) == 0) {
       sample.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id, r_indice_BOLD_Process_ID),start.col: end.col ]))
-      sample.df$habitat <- NA
+      colnames(sample.df) = c("date", "customer_sample_id", "sample_name")
+      sample.df$habitat <- NA_character_
+      sample.df$date = as.numeric(sample.df$date)
+      sample.df$date = as.Date(sample.df$date, origin = "1899-12-30")
+    } else if (length(r_indice_date) == 0) {
+      sample.df = as.data.frame(t(raw_data[c(r_indice_customer_sample_id, r_indice_BOLD_Process_ID, r_indice_habitat),start.col: end.col ]))
+      colnames(sample.df) = c("customer_sample_id", "sample_name", "habitat")
+      sample.df$date <- as.Date(NA)
     } else {
       sample.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id, r_indice_BOLD_Process_ID, r_indice_habitat),start.col: end.col ]))
+      colnames(sample.df) = c("date", "customer_sample_id", "sample_name", "habitat")
+      sample.df$date = as.numeric(sample.df$date)
+      sample.df$date = as.Date(sample.df$date, origin = "1899-12-30")
     }
-    colnames(sample.df) = c("date", "customer_sample_id", "sample_name", "habitat")
-    sample.df$date = as.numeric(sample.df$date)
-    sample.df$date = as.Date(sample.df$date, origin = "1899-12-30")
     sample.df$habitat = as.character(sample.df$habitat)
     sample.df$customer = rep(customer.v, times = nrow(sample.df))
     sample.df$project_name = rep(project.v, times = nrow(sample.df))
-    sample.df$location_name = gsub("[0-9\\s]", "", sample.df$customer_sample_id)
+    sample.df$location_name = sample.df$customer_sample_id
 
 
     DBI::dbWriteTable(con, "temp_sample", sample.df, temporary = TRUE)
@@ -501,11 +521,19 @@ mod_upload_data_server <- function(id){
     "))
     sample.df = left_join(sample.df, location_wid.df, by = c("location_name", "habitat"))
 
-    date_wid.df = unique(dbGetQuery(con,"
+    if (length(r_indice_date) == 0) {
+      date_wid.df = unique(dbGetQuery(con,"
       SELECT d.date_id, d.date
       FROM date d
-      INNER JOIN temp_sample ts ON COALESCE(d.date, NULL) = COALESCE(ts.date, NULL)
+      INNER JOIN temp_sample ts ON d.date IS NULL AND ts.date IS NULL
     "))
+    } else {
+      date_wid.df = unique(dbGetQuery(con,"
+      SELECT d.date_id, d.date
+      FROM date d
+      INNER JOIN temp_sample ts ON d.date = ts.date
+    "))
+    }
     sample.df = left_join(sample.df, date_wid.df, by = "date")
 
     project_wid.df = unique(dbGetQuery(con,"
@@ -561,14 +589,14 @@ mod_upload_data_server <- function(id){
     print("sample relation done")
 
     ########################################################### create seq table ############################################################
-    seq.df <- data.frame()
-    if ("OTU_fasta_sequence" %in% colnames(raw_data)) {
-      seq.df = as.data.frame(raw_data$OTU_fasta_sequence)
 
+    if ("OTU_fasta_sequence" %in% colnames(raw_data)) {
+      seq.df = data.frame(raw_data$OTU_fasta_sequence)
+      seq.df = as.data.frame(seq.df[c(c(r_indice_BOLD_Process_ID+1):nrow(seq.df)),])
     } else {
-      seq.df$OTU_fasta_sequence <- NA_character_
+      seq.df <- data.frame(otu_fasta_sequence = NA_character_)
     }
-    seq.df = as.data.frame(seq.df[c(c(r_indice_BOLD_Process_ID+1):nrow(seq.df)),])
+
     colnames(seq.df) = "otu_fasta_sequence"
 
     dbExecute(con, "
@@ -595,7 +623,7 @@ mod_upload_data_server <- function(id){
     print("seq relation done")
     ########################################################### create reads table ###########################################################
     reads.df = data.frame()
-    start.col = grep("date", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
+    start.col = grep("customer_sampleID", raw_data[c(1:r_indice_BOLD_Process_ID),], ignore.case = TRUE)+1
     end.col = grep("NCBI_Accession_ID", raw_data[r_indice_BOLD_Process_ID,], ignore.case = TRUE)-1
     reads.df = cbind(raw_data[,c("NCBI_Accession_ID", "NCBI_tax_ID", "NCBI_Grade_ID", "adjusted_Domain_NCBI", "adjusted_Phylum_NCBI", "adjusted_Class_NCBI", "adjusted_Order_NCBI", "adjusted_Family_NCBI", "adjusted_Genus_NCBI", "adjusted_Species_NCBI" , "consensus_Domain", "consensus_Class", "consensus_Order", "consensus_Phylum", "consensus_Family", "consensus_Genus", "consensus_Species", "BOLD_Process_ID", "BOLD_BIN_uri", "BOLD_Grade_ID", "BOLD_HIT_ID","BIN sharing?","BIN species", "adjusted_Phylum_BOLD", "adjusted_Class_BOLD", "adjusted_Order_BOLD", "adjusted_Family_BOLD", "adjusted_Genus_BOLD", "adjusted_Species_BOLD")],raw_data[start.col: end.col ])
     reads.df = reads.df[c(c(r_indice_BOLD_Process_ID+1):nrow(reads.df)),]
@@ -604,13 +632,13 @@ mod_upload_data_server <- function(id){
     reads.df$`NCBI_Grade_ID` = as.numeric(sub("%", "", reads.df$`NCBI_Grade_ID`))/100
     colnames(reads.df)[colnames(reads.df) == "BIN sharing?"] = "BIN_sharing"
     colnames(reads.df)[colnames(reads.df) == "BIN species"] = "BIN_species"
-    reads.df = pivot_longer(reads.df, cols = colnames(raw_data[start.col: end.col ]), names_to = "sample_name", values_to = "abs_reads")
     if ("OTU_fasta_sequence" %in% colnames(raw_data)) {
-      reads.df = cbind(reads.df, raw_data[,"OTU_fasta_sequence"])
+      reads.df = cbind(reads.df, raw_data[c(c(r_indice_BOLD_Process_ID+1):nrow(raw_data)),"OTU_fasta_sequence"])
       colnames(reads.df)[ncol(reads.df)] <-"OTU_fasta_sequence"
     } else {
-      seq.df$OTU_fasta_sequence <- NA_character_
+      reads.df$OTU_fasta_sequence <- NA_character_
     }
+    reads.df = pivot_longer(reads.df, cols = colnames(raw_data[start.col: end.col ]), names_to = "sample_name", values_to = "abs_reads")
     reads.df$abs_reads = as.integer(reads.df$abs_reads)
     reads.df$customer = rep(customer.v, times = nrow(reads.df))
     reads.df$project_name = rep(project.v, times = nrow(reads.df))
@@ -621,15 +649,27 @@ mod_upload_data_server <- function(id){
         norm_reads = .data$abs_reads / .data$sum_raw_reads
       ) %>%
       ungroup()
-    if (length(r_indice_habitat) == 0) {
-      meta_data.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id),start.col: end.col]))
-      meta_data.df$habitat <- NA
+    if(length(r_indice_habitat) == 0 && length(r_indice_date) == 0){
+      meta_data.df = as.data.frame(t(raw_data[c(r_indice_customer_sample_id),start.col: end.col]))
+      colnames(meta_data.df) = c("customer_sample_id")
+      meta_data.df$habitat <- NA_character_
+      meta_data.df$date <- as.Date(NA)
+    } else if (length(r_indice_habitat) == 0) {
+      meta_data.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id),start.col: end.col ]))
+      colnames(meta_data.df) = c("date", "customer_sample_id")
+      meta_data.df$habitat <- NA_character_
+      meta_data.df$date = as.numeric(meta_data.df$date)
+      meta_data.df$date = as.Date(meta_data.df$date, origin = "1899-12-30")
+    } else if (length(r_indice_date) == 0) {
+      meta_data.df = as.data.frame(t(raw_data[c(r_indice_customer_sample_id, r_indice_habitat),start.col: end.col ]))
+      colnames(meta_data.df) = c("customer_sample_id", "habitat")
+      meta_data.df$date <- as.Date(NA)
     } else {
       meta_data.df = as.data.frame(t(raw_data[c(r_indice_date, r_indice_customer_sample_id, r_indice_habitat),start.col: end.col ]))
+      colnames(meta_data.df) = c("date", "customer_sample_id", "habitat")
+      meta_data.df$date = as.numeric(meta_data.df$date)
+      meta_data.df$date = as.Date(meta_data.df$date, origin = "1899-12-30")
     }
-    colnames(meta_data.df) = c("date","customer_sample_id", "habitat")
-    meta_data.df$date = as.numeric(meta_data.df$date)
-    meta_data.df$date = as.Date(meta_data.df$date, origin = "1899-12-30")
     meta_data.df = meta_data.df %>%
       rownames_to_column(var = "sample_name")
 
@@ -705,9 +745,9 @@ mod_upload_data_server <- function(id){
     reads.df = left_join(reads.df, ct_wid.df[,tolower(c("ct_id","consensus_Domain", "consensus_Class", "consensus_Order", "consensus_Phylum", "consensus_Family", "consensus_Genus", "consensus_Species"))], by = tolower(c("consensus_Domain", "consensus_Class", "consensus_Order", "consensus_Phylum", "consensus_Family", "consensus_Genus", "consensus_Species")))
     ###########################################################################################
     seq_wid.df = unique(dbGetQuery(con,"
-                                   SELECT seq.seq_id, seq.otu_fasta_sequence
+                                   SELECT s.seq_id, s.otu_fasta_sequence
                                    FROM seq s
-                                   JOIN temp_reads tr ON COALESCE(s.otu_fasta_sequence, '') = COALESCE(tr.otu_fasta_sequence, '')
+                                   INNER JOIN temp_reads tr ON COALESCE(s.otu_fasta_sequence, '') = COALESCE(tr.otu_fasta_sequence, '')
                                    "))
     reads.df = left_join(reads.df, seq_wid.df[,c("seq_id", "otu_fasta_sequence")], by = c("otu_fasta_sequence"))
     ###########################################################################################
@@ -751,8 +791,8 @@ mod_upload_data_server <- function(id){
 
     DBI::dbWriteTable(con, "temp_reads", reads.df, temporary = TRUE)
     query <- glue::glue("
-      INSERT INTO public.reads (sample_id, BOLD_db_id, NCBI_gb_id,ct_id, seq_id, abs_reads, norm_reads, OTU_fasta_sequence)
-      SELECT sample_id, BOLD_db_id, NCBI_gb_id, ct_id, seq_id, abs_reads, norm_reads, OTU_fasta_sequence
+      INSERT INTO public.reads (sample_id, BOLD_db_id, NCBI_gb_id,ct_id, seq_id, abs_reads, norm_reads)
+      SELECT sample_id, BOLD_db_id, NCBI_gb_id, ct_id, seq_id, abs_reads, norm_reads
       FROM temp_reads tr
       WHERE NOT EXISTS (
         SELECT 1
@@ -763,8 +803,7 @@ mod_upload_data_server <- function(id){
               ct_id = tr.ct_id AND
               seq_id = tr.seq_id AND
               abs_reads = tr.abs_reads AND
-              norm_reads = tr.norm_reads AND
-              OTU_fasta_sequence = tr.OTU_fasta_sequence
+              norm_reads = tr.norm_reads
         )
     ")
     dbExecute(con, query)

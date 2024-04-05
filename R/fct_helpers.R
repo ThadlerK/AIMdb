@@ -226,7 +226,8 @@ create_summary_table.f = function(selected_attributes, search_results) {
       .cols = -.data$bold_bin_uri,
       .fns = ~ paste0(., "/", total_unique_counts[as.character(cur_column())])
     ))
-  res <- inner_join(summary_table, ph2, by = c("bold_bin_uri"), suffix = c("", ".u"))
+  res <- inner_join(summary_table, ph2, by = c("bold_bin_uri"), suffix = c("", "_list"))
+  res <- res[,c("bold_bin_uri", sort(colnames(res)[colnames(res) != "bold_bin_uri"]))]
   return(res)
 
 }
@@ -265,3 +266,4 @@ reverse_complement <- function(seq) {
 
   return(complemented_seq)
 }
+
