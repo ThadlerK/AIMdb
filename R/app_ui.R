@@ -22,11 +22,9 @@ app_ui <- function(request) {
             shinydashboard::menuItem("Upload data", tabName = "upload_data", icon = icon("upload")),
             shinydashboard::menuItem("Search data", tabName = "search_data", icon = icon("search")),
             shinydashboard::menuItem("Create plot", tabName = "create_plot", icon = icon("chart-bar")),
-            shinydashboard::menuItem("Create Tables", tabName = "create_table", icon = icon("plus-square")),
-            shinydashboard::menuItem("Update Tables", tabName = "update_table", icon = icon("exchange-alt")),
-            shinydashboard::menuItem("Insert Entries", tabName = "insert_value", icon = icon("edit")),
-            shinydashboard::menuItem("Delete Tables", tabName = "del_table", icon = icon("trash-alt")),
-            shinydashboard::menuItem("About", tabName = "about", icon = icon("info-circle"))
+            shinydashboard::menuItem("Create/Delete Tables", tabName = "data_management", icon = icon("plus-square")),
+            shinydashboard::menuItem("View/Edit Tables", tabName = "data_editor", icon = icon("edit")),
+            shinydashboard::menuItem("Update clause", tabName = "update_values", icon = icon("edit"))
           )
         ),
         shinydashboard::dashboardBody(

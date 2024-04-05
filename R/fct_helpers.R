@@ -16,7 +16,7 @@ if(getRversion() >= "2.15.1")  utils::globalVariables(c("."))
 clean_search_results.f <- function(search_results){
   if (!is.null(search_results)) {
     res <- search_results[, !duplicated(colnames({{search_results}}))] %>%
-      dplyr::filter(BOLD_Grade_ID > 0.95) %>%
+      dplyr::filter(bold_grade_id > 0.95) %>%
       dplyr::mutate(month = factor(month, levels = month.name)) %>%
       dplyr::mutate(date = as.Date(date)) %>%
       dplyr::mutate(year = as.integer(year))
@@ -27,7 +27,7 @@ clean_search_results.f <- function(search_results){
 
 # create a bar chart (with or without color variable)
 create_plot_barchart.f <- function(df, x_var, y_var, color_var, typ){
-  if (color_var != "None") {
+  if (color_var != "none") {
     df %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
       dplyr::summarise(n = ifelse(typ == "unique_counts", n_distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)), sum(!!sym(y_var)))) %>%
@@ -65,7 +65,7 @@ create_plot_barchart.f <- function(df, x_var, y_var, color_var, typ){
 
 # create a bar chart with percentage (with or without color variable)
 create_plot_barchart_percent.f <- function(df, x_var, y_var, color_var, typ){
-  if (color_var != "None") {
+  if (color_var != "none") {
     df %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
       dplyr::summarise(n = ifelse(typ == "unique_counts", n_distinct(!!sym(y_var), !!sym(x_var), !!sym(color_var)), sum(!!sym(y_var)))) %>%
@@ -92,7 +92,7 @@ create_plot_barchart_percent.f <- function(df, x_var, y_var, color_var, typ){
 
 # create a bar chart for a specific taxon (with or without color variable)
 create_barchart_tax_filtered.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
-  if (color_var != "None") {
+  if (color_var != "none") {
     df %>%
       dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
@@ -116,7 +116,7 @@ create_barchart_tax_filtered.f <- function(df, x_var, y_var, color_var, filter_t
 
 # create a bar chart for a specific taxon with percentage (with or without color variable)
 create_barchart_tax_filtered_percent.f <- function(df, x_var, y_var, color_var, filter_taxon, taxon_term, typ) {
-  if (color_var != "None") {
+  if (color_var != "none") {
     df_filtered <- df %>%
       dplyr::filter(!!sym(filter_taxon) %in% taxon_term) %>%
       dplyr::group_by(!!sym(x_var), !!sym(color_var)) %>%
@@ -163,8 +163,8 @@ sum_abs_reads_function <- function(selected_attributes, search_results){
       "The following selected attributes are not present in the search_results:", paste(invalid_attributes, collapse = ", ")))
   }
   return(search_results %>%
-           dplyr::select(.data$BOLD_BIN_uri, .data$NCBI_tax_ID, all_of(selected_attributes), .data$abs_reads) %>%
-           dplyr::group_by(.data$BOLD_BIN_uri, .data$NCBI_tax_ID, !!!syms(selected_attributes)) %>%
+           dplyr::select(.data$bold_bin_uri, .data$ncbi_tax_id, all_of(selected_attributes), .data$abs_reads) %>%
+           dplyr::group_by(.data$bold_bin_uri, .data$ncbi_tax_id, !!!syms(selected_attributes)) %>%
            dplyr::summarize(abs_reads = sum(.data$abs_reads)))
 }
 
@@ -175,7 +175,7 @@ sum_abs_reads_function <- function(selected_attributes, search_results){
 clean_search_results.f <- function(search_results){
   if (!is.null(search_results)) {
     search_results <- search_results[, !duplicated(colnames({{search_results}}))] %>%
-      dplyr::filter(.data$BOLD_Grade_ID > 0.95) %>%
+      dplyr::filter(.data$bold_grade_id > 0.95) %>%
       dplyr::mutate(month = factor(.data$month, levels = month.name)) %>%
       dplyr::mutate(date = as.Date(.data$date)) %>%
       dplyr::mutate(year = as.integer(.data$year))
@@ -188,11 +188,11 @@ clean_search_results.f <- function(search_results){
 # filter data for selected attributes and remove rows with only NA
 filter_search_results.f <- function(selected_attributes, search_results){
   search_results <- search_results %>%
-    dplyr::select(.data$BOLD_BIN_uri, .data$NCBI_tax_ID, all_of(selected_attributes))
+    dplyr::select(.data$bold_bin_uri, .data$ncbi_tax_id, all_of(selected_attributes))
 
   if(length(selected_attributes) > 1){
     search_results <-search_results %>%
-      dplyr::filter(rowSums(!is.na(.[, !(names(.) %in% c("BOLD_BIN_uri", "NCBI_tax_ID"))])) > 0)
+      dplyr::filter(rowSums(!is.na(.[, !(names(.) %in% c("bold_bin_uri", "ncbi_tax_id"))])) > 0)
   }
 
   if ("abs_reads" %in% selected_attributes) {
@@ -205,15 +205,15 @@ filter_search_results.f <- function(selected_attributes, search_results){
 # creates table with a summary for each attribute
 create_summary_table.f = function(selected_attributes, search_results) {
   ph1 <- search_results %>%
-    dplyr::select(.data$BOLD_BIN_uri, .data$NCBI_tax_ID, all_of(selected_attributes))
+    dplyr::select(.data$bold_bin_uri, .data$ncbi_tax_id, all_of(selected_attributes))
 
   unique_counts_per_bin <- ph1 %>%
-    dplyr::group_by(.data$BOLD_BIN_uri) %>%
+    dplyr::group_by(.data$bold_bin_uri) %>%
     dplyr::summarise_all(~ n_distinct(., na.rm = TRUE))
 
   ph2 <- ph1 %>%
     dplyr::distinct() %>%
-    dplyr::group_by(.data$BOLD_BIN_uri) %>%
+    dplyr::group_by(.data$bold_bin_uri) %>%
     dplyr::summarise_all( ~ paste(unique(.), collapse = ", "))
 
 
@@ -223,10 +223,11 @@ create_summary_table.f = function(selected_attributes, search_results) {
 
   summary_table <- unique_counts_per_bin %>%
     dplyr::mutate(across(
-      .cols = -.data$BOLD_BIN_uri,
+      .cols = -.data$bold_bin_uri,
       .fns = ~ paste0(., "/", total_unique_counts[as.character(cur_column())])
     ))
-  res <- inner_join(summary_table, ph2, by = c("BOLD_BIN_uri"), suffix = c("", ".u"))
+  res <- inner_join(summary_table, ph2, by = c("bold_bin_uri"), suffix = c("", "_list"))
+  res <- res[,c("bold_bin_uri", sort(colnames(res)[colnames(res) != "bold_bin_uri"]))]
   return(res)
 
 }
@@ -265,3 +266,4 @@ reverse_complement <- function(seq) {
 
   return(complemented_seq)
 }
+
