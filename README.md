@@ -6,7 +6,7 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of AIMdb is to …
+The goal of AIMdb is to process and build a databank for OTU data.
 
 ## Installation
 
@@ -18,6 +18,4 @@ You can install the development version of AIMdb from
 devtools::install_github("ThadlerK/AIMdb")
 ```
 
-## Example
 
-This is a basic example which shows you how to solve a common problem:
